@@ -408,7 +408,7 @@
     </header>
 
     <div id="status" class="status warn">
-      <strong>Base pronta.</strong> Carica il file della mappa degli accessi (`gsi_access_map.csv`) per abilitare i tag operativi commerciali.
+      <strong>Base pronta.</strong> Mappa accessi caricata automaticamente da GitHub. per abilitare i tag operativi commerciali.
     </div>
 
     <section class="metrics">
@@ -946,3 +946,22 @@
   </script>
 </body>
 </html>
+async function loadAccessMapFromGitHub() {
+  try {
+    setStatus("warn", "<strong>Caricamento mappa accessi...</strong>");
+
+    const url = "https://raw.githubusercontent.com/lgibertini56/gsi-monitor/main/gsi_access_map.csv";
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("CSV non trovato su GitHub");
+
+    const text = await res.text();
+    await importCsv(new File([text], "gsi_access_map.csv", { type: "text/csv" }));
+
+    setStatus("good", "<strong>Mappa accessi caricata automaticamente.</strong>");
+  } catch (e) {
+    setStatus("warn", "<strong>Mappa accessi non trovata.</strong> Usa import manuale CSV.");
+    console.log(e);
+  }
+}
+loadAccessMapFromGitHub();
