@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>GSI Monitor - Completo</title>
+  <style>
+    /* Stili scuri professionali */
+    :root { color-scheme: dark; --bg: #07090f; --text: #f4f7fb; --line: #253044; }
+    body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
+    .shell { max-width: 1400px; margin: 0 auto; }
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; background: #10141f; padding: 15px; border-radius: 8px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; background: #0c111c; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid var(--line); }
+    td { padding: 10px; border-bottom: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>GSI Monitor Completo</h1>
+    <div class="filters">
+      <button onclick="document.getElementById('csvFile').click()">Importa CSV</button>
+      <input type="file" id="csvFile" style="display:none" accept=".csv">
+      <select id="regionFilter"><option value="all">Tutte le regioni</option></select>
+    </div>
+    <table>
+      <thead><tr><th>Paese</th><th>Regione</th><th>Accesso</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <script>
+    // LISTA COMPLETA 91 PAESI
+    const countries = [
+      { country: "Algeria", region: "Africa" }, { country: "Benin", region: "Africa" }, { country: "Botswana", region: "Africa" },
+      { country: "Burkina Faso", region: "Africa" }, { country: "Cameroon", region: "Africa" }, { country: "Cape Verde", region: "Africa" },
+      { country: "Cote d'Ivoire", region: "Africa" }, { country: "Egypt", region: "Africa" }, { country: "Eswatini", region: "Africa" },
+      { country: "Gabon", region: "Africa" }, { country: "Ghana", region: "Africa" }, { country: "Kenya", region: "Africa" },
+      { country: "Malawi", region: "Africa" }, { country: "Mali", region: "Africa" }, { country: "Mauritius", region: "Africa" },
+      { country: "Morocco", region: "Africa" }, { country: "Mozambique", region: "Africa" }, { country: "Namibia", region: "Africa" },
+      { country: "Niger", region: "Africa" }, { country: "Nigeria", region: "Africa" }, { country: "Rwanda", region: "Africa" },
+      { country: "Senegal", region: "Africa" }, { country: "Seychelles", region: "Africa" }, { country: "South Africa", region: "Africa" },
+      { country: "Tanzania", region: "Africa" }, { country: "Togo", region: "Africa" }, { country: "Tunisia", region: "Africa" },
+      { country: "Uganda", region: "Africa" }, { country: "Zambia", region: "Africa" }, { country: "Zimbabwe", region: "Africa" },
+      { country: "Bangladesh", region: "Asia" }, { country: "Bhutan", region: "Asia" }, { country: "Brunei", region: "Asia" },
+      { country: "Cambodia", region: "Asia" }, { country: "China", region: "Asia" }, { country: "Hong Kong", region: "Asia" },
+      { country: "India", region: "Asia" }, { country: "Indonesia", region: "Asia" }, { country: "Japan", region: "Asia" },
+      { country: "Kazakhstan", region: "Asia" }, { country: "Kyrgyzstan", region: "Asia" }, { country: "Laos", region: "Asia" },
+      { country: "Malaysia", region: "Asia" }, { country: "Mongolia", region: "Asia" }, { country: "Nepal", region: "Asia" },
+      { country: "Pakistan", region: "Asia" }, { country: "Philippines", region: "Asia" }, { country: "Singapore", region: "Asia" },
+      { country: "South Korea", region: "Asia" }, { country: "Sri Lanka", region: "Asia" }, { country: "Taiwan", region: "Asia" },
+      { country: "Tajikistan", region: "Asia" }, { country: "Thailand", region: "Asia" }, { country: "Turkmenistan", region: "Asia" },
+      { country: "Uzbekistan", region: "Asia" }, { country: "Vietnam", region: "Asia" }, { country: "Bahrain", region: "Middle East" },
+      { country: "Iran", region: "Middle East" }, { country: "Iraq", region: "Middle East" }, { country: "Jordan", region: "Middle East" },
+      { country: "Kuwait", region: "Middle East" }, { country: "Lebanon", region: "Middle East" }, { country: "Oman", region: "Middle East" },
+      { country: "Palestine", region: "Middle East" }, { country: "Qatar", region: "Middle East" }, { country: "Saudi Arabia", region: "Middle East" },
+      { country: "Turkey", region: "Middle East" }, { country: "UAE", region: "Middle East" }, { country: "Argentina", region: "South America" },
+      { country: "Bolivia", region: "South America" }, { country: "Brazil", region: "South America" }, { country: "Chile", region: "South America" },
+      { country: "Colombia", region: "South America" }, { country: "Ecuador", region: "South America" }, { country: "Guyana", region: "South America" },
+      { country: "Paraguay", region: "South America" }, { country: "Peru", region: "South America" }, { country: "Suriname", region: "South America" },
+      { country: "Uruguay", region: "South America" }, { country: "Venezuela", region: "South America" }, { country: "Bulgaria", region: "Eastern Europe" },
+      { country: "Croatia", region: "Eastern Europe" }, { country: "Czechia", region: "Eastern Europe" }, { country: "Estonia", region: "Eastern Europe" },
+      { country: "Hungary", region: "Eastern Europe" }, { country: "Latvia", region: "Eastern Europe" }, { country: "Lithuania", region: "Eastern Europe" },
+      { country: "Poland", region: "Eastern Europe" }, { country: "Romania", region: "Eastern Europe" }, { country: "Serbia", region: "Eastern Europe" },
+      { country: "Slovenia", region: "Eastern Europe" }
+    ];
+
+    const regionSelect = document.getElementById("regionFilter");
+    const tbody = document.getElementById("rows");
+
+    // Popola select regioni
+    const regions = [...new Set(countries.map(c => c.region))];
+    regions.forEach(r => regionSelect.innerHTML += `<option value="${r}">${r}</option>`);
+
+    function render() {
+      const reg = regionSelect.value;
+      const filtered = reg === "all" ? countries : countries.filter(c => c.region === reg);
+      tbody.innerHTML = filtered.map(c => `<tr><td>${c.country}</td><td>${c.region}</td><td>-</td></tr>`).join("");
+    }
+
+    regionSelect.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>
