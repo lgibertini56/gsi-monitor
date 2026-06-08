@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GSI Monitor - Operativo Definitivo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07090f;
+      --panel: #10141f;
+      --panel-2: #151b29;
+      --line: #253044;
+      --text: #f4f7fb;
+      --muted: #8f9bb3;
+      --green: #39d98a;
+      --red: #ff6b6b;
+      --yellow: #ffd166;
+      --blue: #66d9ef;
+      --violet: #a78bfa;
+      --shadow: 0 20px 50px rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(102, 217, 239, .14), transparent 30%),
+        linear-gradient(180deg, #07090f 0%, #0b1020 42%, #07090f 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1520px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 40px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #39d98a, #66d9ef);
+      color: #041014;
+      font-weight: 900;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 850px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: #4b5871;
+      background: #1b2335;
+    }
+
+    .btn.primary {
+      background: #f4f7fb;
+      color: #071018;
+      border-color: #f4f7fb;
+      font-weight: 800;
+    }
+
+    .btn.ghost {
+      background: transparent;
+    }
+
+    .status {
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(16, 20, 31, .76);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .status strong { color: var(--text); }
+    .status.good strong { color: var(--green); }
+    .status.warn strong { color: var(--yellow); }
+    .status.bad strong { color: var(--red); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(16, 20, 31, .92);
+      padding: 14px;
+      min-height: 104px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric .value {
+      font-size: 28px;
+      font-weight: 850;
+      margin-top: 10px;
+      letter-spacing: 0;
+    }
+
+    .metric .note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: 1fr 190px 190px 190px;
+      gap: 10px;
+      margin: 166px 0;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0c111c;
+      color: var(--text);
+      min-height: 42px;
+      padding: 0 12px;
+      outline: none;
+    }
+
+    .field:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(102, 217, 239, .12);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 1200px) {
+      .grid {
+        grid-template-columns: 1.15fr 0.85fr;
+      }
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(16, 20, 31, .9);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(21, 27, 41, .75);
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 850;
+      margin: 0;
+    }
+
+    .panel-sub {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 630px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1380px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(37, 48, 68, .7);
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #151b29;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    tr:hover td {
+      background: rgba(102, 217, 239, .04);
+    }
+
+    .country {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 160px;
+    }
+
+    .iso {
+      width: 42px;
+      height: 28px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #20283a;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 850;
+      border: 1px solid var(--line);
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .missing { color: #607089; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      border-radius: 6px;
+      padding: 0 8px;
+      background: #20283a;
+      color: #cfd7e8;
+      border: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .rank-item {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(37, 48, 68, .78);
+      border-radius: 8px;
+      background: rgba(7, 9, 15, .38);
+    }
+
+    .rank-no {
+      height: 30px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #20283a;
+      color: var(--yellow);
+      font-weight: 850;
+      font-size: 12px;
+    }
+
+    .bar-area {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 62px;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #20283a;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .footnote {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      margin-top: 14px;
+    }
+
+    .file-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 1000px) {
+      header, .grid, .tools { grid-template-columns: 1fr; }
+      .actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="brand">
+          <div class="mark">GSI</div>
+          <div>
+            <h1>GSI Monitor Operativo</h1>
+            <p class="subtitle">Indice integrato con criteri di accessibilità commerciale per la gestione di portafoglio del Wealth Advisor.</p>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="loadWorldBank">Aggiorna dati World Bank</button>
+        <button class="btn" id="downloadCsv">Export CSV</button>
+        <button class="btn ghost" id="uploadBtn">Importa CSV</button>
+        <input class="file-input" id="csvFile" type="file" accept=".csv,text/csv">
+      </div>
+    </header>
+
+    <div id="status" class="status warn">
+      <strong>Base pronta.</strong> Carica il file della mappa degli accessi (`gsi_access_map.csv`) per abilitare i tag operativi commerciali.
+    </div>
+
+    <section class="metrics">
+      <div class="metric">
+        <div class="label">Paesi GSI</div>
+        <div class="value" id="metricCountries">91</div>
+        <div class="note">Universo investibile iniziale</div>
+      </div>
+      <div class="metric">
+        <div class="label">Dati PIL</div>
+        <div class="value" id="metricGdp">0%</div>
+        <div class="note" id="metricGdpNote">In attesa</div>
+      </div>
+      <div class="metric">
+        <div class="label">Crescita PIL</div>
+        <div class="value" id="metricGrowth">0%</div>
+        <div class="note" id="metricGrowthNote">In attesa</div>
+      </div>
+      <div class="metric">
+        <div class="label">Inflazione</div>
+        <div class="value" id="metricInflation">0%</div>
+        <div class="note" id="metricInflationNote">In attesa</div>
+      </div>
+      <div class="metric">
+        <div class="label">Ultimo sync</div>
+        <div class="value" id="metricSync">-</div>
+        <div class="note">Ora locale del browser</div>
+      </div>
+    </section>
+
+    <section class="tools">
+      <input class="field" id="search" placeholder="Cerca paese, codice o canale d'accesso...">
+      <select class="field" id="regionFilter">
+        <option value="all">Tutte le regioni</option>
+      </select>
+      <select class="field" id="sortBy">
+        <option value="score">Ordina per score GSI</option>
+        <option value="accessLevel">Ordina per Livello Accesso</option>
+        <option value="growth">Ordina per crescita PIL</option>
+        <option value="cagr">Ordina per CAGR 15Y</option>
+        <option value="gdp">Ordina per PIL</option>
+        <option value="country">Ordina per paese</option>
+      </select>
+      <select class="field" id="coverageFilter">
+        <option value="all">Tutti i dati</option>
+        <option value="complete">Solo completi</option>
+        <option value="missing">Con dati mancanti</option>
+      </select>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Tabella Operativa GSI</h2>
+            <div class="panel-sub" id="tableSub">91 paesi visualizzati</div>
+          </div>
+          <span class="tag" id="dataMode">Dati locali</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="country">Paese</th>
+                <th data-sort="region">Regione</th>
+                <th data-sort="gdp">PIL USD</th>
+                <th data-sort="growth">Crescita PIL</th>
+                <th data-sort="inflation">Inflaz.</th>
+                <th data-sort="cagr">CAGR 15Y</th>
+                <th data-sort="score">Score</th>
+                <th data-sort="accessLevel">Accesso</th>
+                <th data-sort="primaryAccessRoute">Canale Primario</th>
+                <th>Note Accessibilità</th>
+                <th>Fonte</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Top paesi</h2>
+              <div class="panel-sub">Classifica provvisoria per score</div>
+            </div>
+          </div>
+          <div class="rank-list" id="rankList"></div>
+        </div>
+
+        <div class="panel" style="margin-top:16px;">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Copertura per regione</h2>
+              <div class="panel-sub">Percentuale paesi con dati completi</div>
+            </div>
+          </div>
+          <div class="bar-area" id="coverageBars"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const INDICATORS = {
+      gdp: "NY.GDP.MKTP.CD",
+      growth: "NY.GDP.MKTP.KD.ZG",
+      gdpPerCapita: "NY.GDP.PCAP.CD",
+      inflation: "FP.CPI.TOTL.ZG"
+    };
+
+    const TAIWAN_FALLBACK = {
+      iso3: "TWN", gdp: 782400000000, gdpYear: 2024, growth: 4.30, growthYear: 2024,
+      gdpPerCapita: 33437, gdpPerCapitaYear: 2024, inflation: 2.18, inflationYear: 2024,
+      cagr: 4.66985675742577, source: "IMF/DGBAS"
+    };
+
+    const CACHE_KEY = "gsi-monitor-91-cache-v4";
+    const CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+
+    const COUNTRIES = [
+      { iso3: "DZA", country: "Algeria", region: "Africa" },
+      { iso3: "BEN", country: "Benin", region: "Africa" },
+      { iso3: "BWA", country: "Botswana", region: "Africa" },
+      { iso3: "BFA", country: "Burkina Faso", region: "Africa" },
+      { iso3: "CMR", country: "Cameroon", region: "Africa" },
+      { iso3: "CPV", country: "Cape Verde", region: "Africa" },
+      { iso3: "CIV", country: "Cote d'Ivoire", region: "Africa" },
+      { iso3: "EGY", country: "Egypt", region: "Africa" },
+      { iso3: "SWZ", country: "Eswatini", region: "Africa" },
+      { iso3: "GAB", country: "Gabon", region: "Africa" },
+      { iso3: "GHA", country: "Ghana", region: "Africa" },
+      { iso3: "KEN", country: "Kenya", region: "Africa" },
+      { iso3: "MWI", country: "Malawi", region: "Africa" },
+      { iso3: "MLI", country: "Mali", region: "Africa" },
+      { iso3: "MUS", country: "Mauritius", region: "Africa" },
+      { iso3: "MAR", country: "Morocco", region: "Africa" },
+      { iso3: "MOZ", country: "Mozambique", region: "Africa" },
+      { iso3: "NAM", country: "Namibia", region: "Africa" },
+      { iso3: "NER", country: "Niger", region: "Africa" },
+      { iso3: "NGA", country: "Nigeria", region: "Africa" },
+      { iso3: "RWA", country: "Rwanda", region: "Africa" },
+      { iso3: "SEN", country: "Senegal", region: "Africa" },
+      { iso3: "SYC", country: "Seychelles", region: "Africa" },
+      { iso3: "ZAF", country: "South Africa", region: "Africa" },
+      { iso3: "TZA", country: "Tanzania", region: "Africa" },
+      { iso3: "TGO", country: "Togo", region: "Africa" },
+      { iso3: "TUN", country: "Tunisia", region: "Africa" },
+      { iso3: "UGA", country: "Uganda", region: "Africa" },
+      { iso3: "ZMB", country: "Zambia", region: "Africa" },
+      { iso3: "ZWE", country: "Zimbabwe", region: "Africa" },
+      { iso3: "BGD", country: "Bangladesh", region: "Asia" },
+      { iso3: "BTN", country: "Bhutan", region: "Asia" },
+      { iso3: "BRN", country: "Brunei", region: "Asia" },
+      { iso3: "KHM", country: "Cambodia", region: "Asia" },
+      { iso3: "CHN", country: "China", region: "Asia" },
+      { iso3: "HKG", country: "Hong Kong", region: "Asia" },
+      { iso3: "IND", country: "India", region: "Asia" },
+      { iso3: "IDN", country: "Indonesia", region: "Asia" },
+      { iso3: "JPN", country: "Japan", region: "Asia" },
+      { iso3: "KAZ", country: "Kazakhstan", region: "Asia" },
+      { iso3: "KGZ", country: "Kyrgyzstan", region: "Asia" },
+      { iso3: "LAO", country: "Laos", region: "Asia" },
+      { iso3: "MYS", country: "Malaysia", region: "Asia" },
+      { iso3: "MNG", country: "Mongolia", region: "Asia" },
+      { iso3: "NPL", country: "Nepal", region: "Asia" },
+      { iso3: "PAK", country: "Pakistan", region: "Asia" },
+      { iso3: "PHL", country: "Philippines", region: "Asia" },
+      { iso3: "SGP", country: "Singapore", region: "Asia" },
+      { iso3: "KOR", country: "South Korea", region: "Asia" },
+      { iso3: "LKA", country: "Sri Lanka", region: "Asia" },
+      { iso3: "TWN", country: "Taiwan", region: "Asia" },
+      { iso3: "TJK", country: "Tajikistan", region: "Asia" },
+      { iso3: "THA", country: "Thailand", region: "Asia" },
+      { iso3: "TKM", country: "Turkmenistan", region: "Asia" },
+      { iso3: "UZB", country: "Uzbekistan", region: "Asia" },
+      { iso3: "VNM", country: "Vietnam", region: "Asia" },
+      { iso3: "BHR", country: "Bahrain", region: "Middle East" },
+      { iso3: "IRN", country: "Iran", region: "Middle East" },
+      { iso3: "IRQ", country: "Iraq", region: "Middle East" },
+      { iso3: "JOR", country: "Jordan", region: "Middle East" },
+      { iso3: "KWT", country: "Kuwait", region: "Middle East" },
+      { iso3: "LBN", country: "Lebanon", region: "Middle East" },
+      { iso3: "OMN", country: "Oman", region: "Middle East" },
+      { iso3: "PSE", country: "Palestine", region: "Middle East" },
+      { iso3: "QAT", country: "Qatar", region: "Middle East" },
+      { iso3: "SAU", country: "Saudi Arabia", region: "Middle East" },
+      { iso3: "TUR", country: "Turkey", region: "Middle East" },
+      { iso3: "ARE", country: "UAE", region: "Middle East" },
+      { iso3: "ARG", country: "Argentina", region: "South America" },
+      { iso3: "BOL", country: "Bolivia", region: "South America" },
+      { iso3: "BRA", country: "Brazil", region: "South America" },
+      { iso3: "CHL", country: "Chile", region: "South America" },
+      { iso3: "COL", country: "Colombia", region: "South America" },
+      { iso3: "ECU", country: "Ecuador", region: "South America" },
+      { iso3: "GUY", country: "Guyana", region: "South America" },
+      { iso3: "PRY", country: "Paraguay", region: "South America" },
+      { iso3: "PER", country: "Peru", region: "South America" },
+      { iso3: "SUR", country: "Suriname", region: "South America" },
+      { iso3: "URY", country: "Uruguay", region: "South America" },
+      { iso3: "VEN", country: "Venezuela", region: "South America" },
+      { iso3: "BGR", country: "Bulgaria", region: "Eastern Europe" },
+      { iso3: "HRV", country: "Croatia", region: "Eastern Europe" },
+      { iso3: "CZE", country: "Czechia", region: "Eastern Europe" },
+      { iso3: "EST", country: "Estonia", region: "Eastern Europe" },
+      { iso3: "HUN", country: "Hungary", region: "Eastern Europe" },
+      { iso3: "LVA", country: "Latvia", region: "Eastern Europe" },
+      { iso3: "LTU", country: "Lithuania", region: "Eastern Europe" },
+      { iso3: "POL", country: "Poland", region: "Eastern Europe" },
+      { iso3: "ROU", country: "Romania", region: "Eastern Europe" },
+      { iso3: "SRB", country: "Serbia", region: "Eastern Europe" },
+      { iso3: "SVN", country: "Slovenia", region: "Eastern Europe" }
+    ];
+
+    let rows = COUNTRIES.map(item => ({
+      ...item, gdp: null, gdpYear: null, growth: null, growthYear: null,
+      gdpPerCapita: null, gdpPerCapitaYear: null, inflation: null, inflationYear: null,
+      cagr: null, score: null, accessLevel: null, primaryAccessRoute: null, accessNotes: null, source: "In attesa"
+    }));
+
+    let sortKey = "score";
+    let sortDirection = "desc";
+
+    const els = {
+      status: document.getElementById("status"),
+      rows: document.getElementById("rows"),
+      rankList: document.getElementById("rankList"),
+      coverageBars: document.getElementById("coverageBars"),
+      search: document.getElementById("search"),
+      regionFilter: document.getElementById("regionFilter"),
+      sortBy: document.getElementById("sortBy"),
+      coverageFilter: document.getElementById("coverageFilter"),
+      dataMode: document.getElementById("dataMode"),
+      tableSub: document.getElementById("tableSub"),
+      metricCountries: document.getElementById("metricCountries"),
+      metricGdp: document.getElementById("metricGdp"),
+      metricGdpNote: document.getElementById("metricGdpNote"),
+      metricGrowth: document.getElementById("metricGrowth"),
+      metricGrowthNote: document.getElementById("metricGrowthNote"),
+      metricInflation: document.getElementById("metricInflation"),
+      metricInflationNote: document.getElementById("metricInflationNote"),
+      metricSync: document.getElementById("metricSync")
+    };
+
+    function setStatus(type, html) {
+      els.status.className = "status " + type;
+      els.status.innerHTML = html;
+    }
+
+    function formatNumber(value, maximumFractionDigits = 1) {
+      if (!Number.isFinite(value)) return '<span class="missing">-</span>';
+      return new Intl.NumberFormat("it-IT", { maximumFractionDigits }).format(value);
+    }
+
+    function formatMoney(value) {
+      if (!Number.isFinite(value)) return '<span class="missing">-</span>';
+      if (Math.abs(value) >= 1e12) return "$" + formatNumber(value / 1e12, 2) + "T";
+      if (Math.abs(value) >= 1e9) return "$" + formatNumber(value / 1e9, 1) + "B";
+      return "$" + formatNumber(value / 1e6, 1) + "M";
+    }
+
+    function formatPct(value) {
+      if (!Number.isFinite(value)) return '<span class="missing">-</span>';
+      return `<span class="${value >= 0 ? 'pos' : 'neg'}">${formatNumber(value, 2)}%</span>`;
+    }
+
+    function formatAccessLevel(level) {
+      if (!level) return '<span class="missing">n/d</span>';
+      let style = "";
+      const lvl = level.toLowerCase().trim();
+      if (lvl === "high") style = "background: rgba(57, 217, 138, 0.15); color: var(--green); border-color: rgba(57, 217, 138, 0.3);";
+      else if (lvl === "medium") style = "background: rgba(255, 209, 102, 0.15); color: var(--yellow); border-color: rgba(255, 209, 102, 0.3);";
+      else if (lvl === "low") style = "background: rgba(255, 107, 107, 0.15); color: var(--red); border-color: rgba(255, 107, 107, 0.3);";
+      return `<span class="tag" style="${style}">${level}</span>`;
+    }
+
+    function latestValue(series) {
+      if (!Array.isArray(series)) return { value: null, year: null };
+      const item = series.filter(row => row && row.value !== null && row.date).sort((a, b) => Number(b.date) - Number(a.date))[0];
+      return item ? { value: Number(item.value), year: Number(item.date) } : { value: null, year: null };
+    }
+
+    function valueForYear(series, year) {
+      const item = series.find(row => Number(row.date) === Number(year) && row.value !== null);
+      return item ? Number(item.value) : null;
+    }
+
+    function computeCagr(series) {
+      const latest = latestValue(series);
+      if (!Number.isFinite(latest.value) || !latest.year) return null;
+      const targetYear = latest.year - 15;
+      let base = valueForYear(series, targetYear);
+      if (!Number.isFinite(base) || base <= 0) {
+        const candidates = series.filter(row => row.value && Number(row.date) <= targetYear + 2 && Number(row.date) >= targetYear - 2)
+                                 .sort((a, b) => Math.abs(Number(a.date) - targetYear) - Math.abs(Number(b.date) - targetYear));
+        base = candidates[0] ? Number(candidates[0].value) : null;
+      }
+      if (!Number.isFinite(base) || base <= 0 || latest.value <= 0) return null;
+      return (Math.pow(latest.value / base, 1 / 15) - 1) * 100;
+    }
+
+    function normalize(value, min, max) {
+      if (!Number.isFinite(value) || max === min) return null;
+      return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+    }
+
+    function calculateScores() {
+      rows = rows.map(row => {
+        const growthScore = normalize(row.growth, -3, 10);
+        const cagrScore = normalize(row.cagr, -2, 12);
+        const incomeScore = normalize(Number.isFinite(row.gdpPerCapita) && row.gdpPerCapita > 0 ? Math.log(row.gdpPerCapita) : null, Math.log(500), Math.log(65000));
+        const inflationScore = Number.isFinite(row.inflation) ? (row.inflation <= 0 ? 45 : row.inflation <= 3 ? 100 : row.inflation <= 15 ? normalize(15 - row.inflation, 0, 12) : 0) : null;
+
+        const weighted = [[growthScore, 0.40], [cagrScore, 0.35], [inflationScore, 0.15], [incomeScore, 0.10]].filter(([v]) => v !== null);
+        const weightSum = weighted.reduce((sum, [, w]) => sum + w, 0);
+        const score = weightSum ? weighted.reduce((sum, [v, w]) => sum + v * w, 0) / weightSum : null;
+        return { ...row, score };
+      });
+    }
+
+    function applyTaiwanFallback() {
+      rows = rows.map(row => row.iso3 === TAIWAN_FALLBACK.iso3 ? { ...row, ...TAIWAN_FALLBACK } : row);
+    }
+
+    function getCoverage(row) {
+      return ["gdp", "growth", "gdpPerCapita", "inflation"].filter(key => Number.isFinite(row[key])).length;
+    }
+
+    function renderRegionsMenuOnce() {
+      // Popola il menu solo se è vuoto (evita reset continui)
+      if (els.regionFilter.options.length > 1) return;
+      const regions = [...new Set(COUNTRIES.map(row => row.region))].sort();
+      els.regionFilter.innerHTML = '<option value="all">Tutte le regioni</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join("");
+    }
+
+    function renderTableOnly() {
+      const search = els.search.value.trim().toLowerCase();
+      const region = els.regionFilter.value;
+      const coverage = els.coverageFilter.value;
+
+      const filtered = rows.filter(row => {
+        const matchesSearch = !search || row.country.toLowerCase().includes(search) || row.iso3.toLowerCase().includes(search) ||
+                             (row.primaryAccessRoute && row.primaryAccessRoute.toLowerCase().includes(search));
+        const matchesRegion = region === "all" || row.region === region;
+        const cCount = getCoverage(row);
+        const matchesCoverage = coverage === "all" || (coverage === "complete" && cCount === 4) || (coverage === "missing" && cCount < 4);
+        return matchesSearch && matchesRegion && matchesCoverage;
+      });
+
+      filtered.sort((a, b) => {
+        const dir = sortDirection === "asc" ? 1 : -1;
+        if (["country", "region", "accessLevel", "primaryAccessRoute"].includes(sortKey)) {
+          return (a[sortKey] || "").localeCompare(b[sortKey] || "") * dir;
+        }
+        return ((Number.isFinite(a[sortKey]) ? a[sortKey] : -Infinity) - (Number.isFinite(b[sortKey]) ? b[sortKey] : -Infinity)) * dir;
+      });
+
+      els.tableSub.textContent = filtered.length + " paesi visualizzati";
+      els.rows.innerHTML = filtered.map(row => `
+        <tr>
+          <td><div class="country"><span class="iso">${row.iso3}</span><strong>${row.country}</strong></div></td>
+          <td><span class="tag">${row.region}</span></td>
+          <td class="num">${formatMoney(row.gdp)} <span class="missing">${row.gdpYear ? `(${row.gdpYear})` : ''}</span></td>
+          <td class="num">${formatPct(row.growth)} <span class="missing">${row.growthYear ? `(${row.growthYear})` : ''}</span></td>
+          <td class="num">${formatPct(row.inflation)}</td>
+          <td class="num">${formatPct(row.cagr)}</td>
+          <td class="num"><strong>${Number.isFinite(row.score) ? formatNumber(row.score, 1) : '-'}</strong></td>
+          <td>${formatAccessLevel(row.accessLevel)}</td>
+          <td><span class="tag" style="color:var(--blue); border-color:rgba(102,217,239,0.2);">${row.primaryAccessRoute || '-'}</span></td>
+          <td style="max-width:240px; white-space:normal; color:var(--muted); font-size:12px;">${row.accessNotes || '-'}</td>
+          <td><span class="tag">${row.source}</span></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderAll() {
+      calculateScores();
+      renderRegionsMenuOnce();
+      renderMetrics();
+      renderTableOnly();
+      renderRanks();
+      renderCoverageBars();
+    }
+
+    function renderMetrics() {
+      const total = rows.length;
+      const count = k => rows.filter(r => Number.isFinite(r[k])).length;
+      els.metricGdp.textContent = Math.round((count("gdp")/total)*100) + "%";
+      els.metricGdpNote.textContent = count("gdp") + " / " + total;
+      els.metricGrowth.textContent = Math.round((count("growth")/total)*100) + "%";
+      els.metricGrowthNote.textContent = count("growth") + " / " + total;
+      els.metricInflation.textContent = Math.round((count("inflation")/total)*100) + "%";
+      els.metricInflationNote.textContent = count("inflation") + " / " + total;
+    }
+
+    function renderRanks() {
+      const sorted = [...rows].filter(r => Number.isFinite(r.score)).sort((a,b) => b.score - a.score).slice(0, 8);
+      els.rankList.innerHTML = sorted.map((row, i) => `
+        <div class="rank-item">
+          <div class="rank-no">${i+1}</div>
+          <div><strong>${row.country}</strong><div class="panel-sub">${row.region} - Accesso: ${row.accessLevel || 'n/d'}</div></div>
+          <strong>${formatNumber(row.score, 1)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function renderCoverageBars() {
+      const regions = [...new Set(COUNTRIES.map(r => r.region))].sort();
+      els.coverageBars.innerHTML = regions.map(reg => {
+        const items = rows.filter(r => r.region === reg);
+        const compl = items.filter(r => getCoverage(r) === 4).length;
+        const pct = items.length ? Math.round((compl / items.length) * 100) : 0;
+        return `<div class="bar-row"><strong>${reg}</strong><div class="bar"><span style="width:${pct}%"></span></div><span>${pct}%</span></div>`;
+      }).join("");
+    }
+
+    // --- Gestione Cache & CSV ---
+    function saveCache(mode) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), mode, rows })); } catch(e){}
+    }
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY); if (!raw) return false;
+        const c = JSON.parse(raw); rows = c.rows; els.dataMode.textContent = c.mode;
+        els.metricSync.textContent = new Date(c.savedAt).toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
+        return (Date.now() - c.savedAt) < CACHE_MAX_AGE;
+      } catch(e) { return false; }
+    }
+
+    function chunk(arr, size) {
+      const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out;
+    }
+
+    async function fetchIndicator(key, code) {
+      const map = new Map(); const chunks = chunk(rows.map(r => r.iso3), 32);
+      for (const codes of chunks) {
+        const url = `https://api.worldbank.org/v2/country/${codes.join(";")}/indicator/${code}?format=json&per_page=20000&date=2000:2026`;
+        const res = await fetch(url); const payload = await res.json();
+        const series = payload[1] || [];
+        for (const item of series) {
+          const iso = item.countryiso3code || (item.country && item.country.id); if (!iso) continue;
+          if (!map.has(iso)) map.set(iso, []); map.get(iso).push(item);
+        }
+      }
+      return map;
+    }
+
+    async function loadWorldBank() {
+      setStatus("warn", "<strong>Aggiornamento in corso.</strong> Download da World Bank...");
+      try {
+        const [gdpMap, growthMap, gdpPcMap, inflationMap] = await Promise.all([
+          fetchIndicator("GDP", INDICATORS.gdp), fetchIndicator("GROWTH", INDICATORS.growth),
+          fetchIndicator("PC", INDICATORS.gdpPerCapita), fetchIndicator("INF", INDICATORS.inflation)
+        ]);
+        rows = rows.map(row => {
+          const s = gdpMap.get(row.iso3) || []; const g = latestValue(s);
+          return {
+            ...row, gdp: g.value, gdpYear: g.year,
+            growth: latestValue(growthMap.get(row.iso3) || []).value, growthYear: latestValue(growthMap.get(row.iso3) || []).year,
+            gdpPerCapita: latestValue(gdpPcMap.get(row.iso3) || []).value, inflation: latestValue(inflationMap.get(row.iso3) || []).value,
+            cagr: computeCagr(s), source: "World Bank"
+          };
+        });
+        applyTaiwanFallback(); saveCache("World Bank"); renderAll();
+        setStatus("good", "<strong>Dati completati.</strong> World Bank allineata.");
+      } catch(e) { setStatus("bad", "Errore: " + e.message); }
+    }
+
+    function parseCsv(text) {
+      const lines = []; let r = []; let v = ""; let q = false;
+      for (let i=0; i<text.length; i++) {
+        const c = text[i]; const n = text[i+1];
+        if (q) { if (c==='"' && n==='"') { v+='"'; i++; } else if (c==='"') { q=false; } else { v+=c; } }
+        else if (c==='"') { q=true; }
+        else if (c===",") { r.push(v); v=""; }
+        else if (c==="\n") { r.push(v); lines.push(r); r=[]; v=""; }
+        else if (c!=="\r") v+=c;
+      }
+      r.push(v); lines.push(r); return lines.filter(l => l.some(cell => cell.trim() !== ""));
+    }
+
+    function num(v) {
+      if (!v || String(v).trim() === "") return null;
+      let c = String(v).trim().replace(/\s/g, "").replace(",", ".");
+      let p = Number(c); return Number.isFinite(p) ? p : null;
+    }
+
+    async function importCsv(file) {
+      const text = await file.text(); const parsed = parseCsv(text);
+      const headers = parsed[0].map(h => h.trim());
+      const records = parsed.slice(1).map(cells => Object.fromEntries(headers.map((h, i) => [h, cells[i] || ""])));
+      const byIso = new Map(records.map(r => [r.ISO3, r]));
+
+      rows = rows.map(row => {
+        const found = byIso.get(row.iso3); if (!found) return row;
+        return {
+          ...row,
+          gdp: num(found["GDP USD"]) || num(found["PIL (USD)"]) || row.gdp,
+          growth: num(found["GDP Growth %"]) || num(found["Crescita PIL %"]) || row.growth,
+          inflation: num(found["Inflation %"]) || num(found["Inflazione %"]) || row.inflation,
+          cagr: num(found["CAGR 15Y %"]) || row.cagr,
+          accessLevel: found["Access Level"] !== undefined ? found["Access Level"].trim() : row.accessLevel,
+          primaryAccessRoute: found["Primary Access Route"] !== undefined ? found["Primary Access Route"].trim() : row.primaryAccessRoute,
+          accessNotes: found["Access Notes"] !== undefined ? found["Access Notes"].trim() : row.accessNotes,
+          source: "CSV Integrato"
+        };
+      });
+      applyTaiwanFallback(); saveCache("CSV Integrato"); renderAll();
+      setStatus("good", "<strong>CSV Importato correttamente.</strong> Canali d'accesso commerciali attivi.");
+    }
+
+    // --- Event Listeners ---
+    document.getElementById("loadWorldBank").addEventListener("click", loadWorldBank);
+    document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("csvFile").click());
+    document.getElementById("csvFile").addEventListener("change", e => { if(e.target.files[0]) importCsv(e.target.files[0]); });
+    
+    els.search.addEventListener("input", renderTableOnly);
+    els.regionFilter.addEventListener("change", renderTableOnly);
+    els.coverageFilter.addEventListener("change", renderTableOnly);
+    els.sortBy.addEventListener("change", e => { sortKey = e.target.value; sortDirection = "desc"; renderTableOnly(); });
+
+    document.querySelectorAll("th[data-sort]").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.getAttribute("data-sort");
+        sortDirection = sortKey === key && sortDirection === "desc" ? "asc" : "desc"; sortKey = key;
+        if (["score","growth","gdp","country","accessLevel"].includes(key)) els.sortBy.value = key;
+        renderTableOnly();
+      });
+    });
+
+    const hasCache = loadCache(); renderAll();
+    if (!hasCache) window.setTimeout(loadWorldBank, 500);
+  </script>
+</body>
+</html>
