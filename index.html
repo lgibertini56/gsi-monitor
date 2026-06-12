@@ -770,7 +770,7 @@
 
       els.tableSub.textContent = filtered.length + " paesi visualizzati";
       els.rows.innerHTML = filtered.map(row => `
-        <tr onclick="showDetailView(row)" style="cursor:pointer">
+        <tr onclick="showDetailView('${row.iso3}')" style="cursor:pointer">
           <td><div class="country"><span class="iso">${row.iso3}</span><strong>${row.country}</strong></div></td>
           <td><span class="tag">${row.region}</span></td>
           <td class="num">${formatMoney(row.gdp)} <span class="missing">${row.gdpYear ? `(${row.gdpYear})` : ''}</span></td>
@@ -963,6 +963,20 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
+    function showDetailView(codiceIso) {
+  // Cerca il paese corrispondente al codice cliccato (es. 'ITA')
+  const paese = rows.find(r => r.iso3 === codiceIso);
+  
+  if (paese) {
+    // Se lo trova, riempie la scheda di dettaglio con i dati reali
+    document.getElementById("detCountry").textContent = paese.country;
+    document.getElementById("detScore").textContent = paese.score;
+    document.getElementById("detSynthesis").textContent = paese.synthesis || "Dati non disponibili";
+    
+    // Rende visibile la scheda laterale
+    document.getElementById("detailPanel").classList.remove("hidden");
+  }
+}
 </script>
 </body>
   </html>
