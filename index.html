@@ -962,63 +962,61 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
-    function function showDetailView(codiceIso) {
+    function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
+    // Identifichiamo i dati dal tuo CSV
     const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
     const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (p) {
-        // FUNZIONE INTELLIGENTE: Trova il dato anche se il titolo della colonna cambia (Maiuscole/Minuscole)
-        const getSafe = (keys) => {
-            for (let k of keys) {
-                let foundKey = Object.keys(p).find(key => key.toLowerCase().trim() === k.toLowerCase().trim());
-                if (foundKey && p[foundKey] !== undefined && p[foundKey] !== "") return p[foundKey];
-            }
-            return 'N/D';
-        };
-
-        // 1. HEADER
-        document.getElementById('detCountry').innerText = getSafe(['Country', 'country', 'name']);
-        document.getElementById('detScore').innerText = getSafe(['GSI Score', 'score', 'GSI ACCESS SCORE']);
+        // Prepariamo il link sul nome per la futura pagina dedicata (Fase 2)
+        document.getElementById('detCountry').innerHTML = `
+            <span onclick="alert('Apertura dashboard analitica per: ${codiceIso}')" style="cursor:pointer; text-decoration:underline; color:#00ff00;">
+                ${p.Country || p.country || p.name || '-'}
+            </span>`;
+        document.getElementById('detScore').innerText = p['GSI Score'] || p.score || '-';
         
         const synth = document.getElementById('detSynthesis');
         if (synth) {
-            // 2. TUTTI GLI 11 CAMPI DEL TUO CSV (Mappatura Flessibile)
+            // Visualizziamo i tuoi 11 campi (Region, Access Notes, Primary Route, ecc.)
             synth.innerHTML = `
                 <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
-                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${getSafe(['Region', 'region'])}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${getSafe(['Access Level', 'access level'])}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ROUTE:</b><br>${getSafe(['Primary Access Route', 'route'])}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">NOTES & ANALYSIS:</b><br><span style="color:#ccc; font-size:0.8rem;">${getSafe(['Access Notes', 'notes'])}</span></p>
-                    <p style="margin:2px 0;"><span style="color:#888;">PRIORITY:</span> ${getSafe(['Product Priority', 'priority'])}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">VERIFICATION:</span> ${getSafe(['Verification Status', 'verification'])}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">SOURCE:</span> ${getSafe(['Source', 'source'])}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ACCESS ROUTE:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">ACCESS NOTES:</b><br><span style="color:#ccc;">${p['Access Notes'] || 'N/D'}</span></p>
+                    <p style="margin:2px 0;"><span style="color:#888;">PRIORITY:</span> ${p['Product Priority'] || 'N/D'}</p>
                 </div>
-                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indici macro...</i></div>
+                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione dati globali...</i></div>
             `;
         }
 
-        // 3. RECUPERO DATI ESTERNI
-        fetchAdditionalSources(codiceIso).then(data => {
+        // CHIAMATA DIRETTA API (FDI, Debito, Popolazione, Capitalizzazione Borsa)
+        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;NY.GDP.MKTP.KD.ZG;SP.POP.GROW;CM.MKT.LCAP.GD.ZS';
+        const url = `https://api.worldbank.org/v2/country/${codiceIso}/indicator/${indicators}?format=json&mrnev=1`;
+
+        fetch(url).then(res => res.json()).then(result => {
             const area = document.getElementById('wbData');
-            if (area) {
+            if (area && Array.isArray(result) && result) {
+                const dataArray = result;
+                const getVal = (id) => {
+                    const item = dataArray.find(i => i.indicator.id === id);
+                    return (item && item.value !== null) ? item.value.toFixed(2) : "N/D";
+                };
                 area.innerHTML = `
                     <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
-                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:10px;">Market & Structural Risk</h4>
+                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:10px;">Macro Indicators</h4>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <p>GDP Growth: <span style="color:white;">${data.growth || 'N/A'}</span></p>
-                            <p>Debito/PIL: <span style="color:white;">${data.debt || 'N/A'}</span></p>
-                            <p>Inflazione: <span style="color:white;">${data.inflation || 'N/A'}</span></p>
-                            <p>Cap. Borsa: <span style="color:white;">${data.mktCap || 'N/A'}</span></p>
+                            <p>PIL Growth: ${getVal('NY.GDP.MKTP.KD.ZG')}%</p>
+                            <p>Debito/PIL: ${getVal('GC.DOD.TOTL.GD.ZS')}%</p>
+                            <p>FDI Flow: ${getVal('BX.KLT.DINV.WD.GD.ZS')}%</p>
+                            <p>Cap. Borsa: ${getVal('CM.MKT.LCAP.GD.ZS')}%</p>
+                            <p>Cresc. Pop: ${getVal('SP.POP.GROW')}%</p>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
-        }).catch(err => {
-            document.getElementById('wbData').innerHTML = '<span style="color:#888;">Dati macro non disponibili al momento</span>';
-        });
+        }).catch(e => console.error("Errore fetch:", e));
     }
 }
 
