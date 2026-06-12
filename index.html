@@ -962,7 +962,7 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
-    function showDetailView(codiceIso) {
+    function function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
@@ -970,61 +970,56 @@ loadAccessMapFromGitHub();
     const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (p) {
-        // TRASFORMAZIONE NOME IN LINK (Inizio Fase 2)
-        document.getElementById('detCountry').innerHTML = `
-            <span onclick="openDedicatedPage('${codiceIso}')" style="cursor:pointer; text-decoration:underline; hover:color:#fff;">
-                ${p.Country || p.country || p.name}
-            </span>`;
-        
-        document.getElementById('detScore').innerText = p['GSI Score'] || p.score || '-';
+        // FUNZIONE INTELLIGENTE: Trova il dato anche se il titolo della colonna cambia (Maiuscole/Minuscole)
+        const getSafe = (keys) => {
+            for (let k of keys) {
+                let foundKey = Object.keys(p).find(key => key.toLowerCase().trim() === k.toLowerCase().trim());
+                if (foundKey && p[foundKey] !== undefined && p[foundKey] !== "") return p[foundKey];
+            }
+            return 'N/D';
+        };
+
+        // 1. HEADER
+        document.getElementById('detCountry').innerText = getSafe(['Country', 'country', 'name']);
+        document.getElementById('detScore').innerText = getSafe(['GSI Score', 'score', 'GSI ACCESS SCORE']);
         
         const synth = document.getElementById('detSynthesis');
         if (synth) {
-            // VISUALIZZAZIONE DI TUTTI GLI 11 CAMPI DEL TUO CSV
+            // 2. TUTTI GLI 11 CAMPI DEL TUO CSV (Mappatura Flessibile)
             synth.innerHTML = `
                 <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
-                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'} (Score: ${p['Access Score'] || 'N/D'})</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem; text-transform:uppercase;">Primary Access Route:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem; text-transform:uppercase;">Access Notes & Analysis:</b><br><span style="color:#ccc; font-size:0.8rem;">${p['Access Notes'] || 'N/D'}</span></p>
-                    <p style="margin:2px 0;"><span style="color:#888;">PRODUCT PRIORITY:</span> ${p['Product Priority'] || 'N/D'}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">VERIFICATION:</span> ${p['Verification Status'] || 'N/D'}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">SOURCE:</span> ${p.Source || 'GSI Database'}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${getSafe(['Region', 'region'])}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${getSafe(['Access Level', 'access level'])}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ROUTE:</b><br>${getSafe(['Primary Access Route', 'route'])}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">NOTES & ANALYSIS:</b><br><span style="color:#ccc; font-size:0.8rem;">${getSafe(['Access Notes', 'notes'])}</span></p>
+                    <p style="margin:2px 0;"><span style="color:#888;">PRIORITY:</span> ${getSafe(['Product Priority', 'priority'])}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">VERIFICATION:</span> ${getSafe(['Verification Status', 'verification'])}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">SOURCE:</span> ${getSafe(['Source', 'source'])}</p>
                 </div>
-                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indicatori macro...</i></div>
+                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indici macro...</i></div>
             `;
         }
 
-        // CARICAMENTO E VISUALIZZAZIONE DEI 9 INDICATORI WORLD BANK (Fase 1)
+        // 3. RECUPERO DATI ESTERNI
         fetchAdditionalSources(codiceIso).then(data => {
             const area = document.getElementById('wbData');
             if (area) {
                 area.innerHTML = `
                     <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
-                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #222;">Market & Structural Risk</h4>
+                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:10px;">Market & Structural Risk</h4>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <p title="Fiducia Investitori">FDI Flow: <span style="color:white;">${data.fdi}</span></p>
-                            <p title="Rischio Sovrano">Debito/PIL: <span style="color:white;">${data.debt}</span></p>
-                            <p title="Crescita Reale">GDP Growth: <span style="color:white;">${data.growth}</span></p>
-                            <p title="Potere d'Acquisto">Inflazione: <span style="color:white;">${data.inflation}</span></p>
-                            <p title="Sviluppo Finanziario">Cap. Borsa: <span style="color:white;">${data.mktCap}</span></p>
-                            <p title="Vantaggio Demografico">Cresc. Pop: <span style="color:white;">${data.popGrowth}</span></p>
-                        </div>
-                        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #333; font-size:0.75rem; color:#aaa;">
-                            <p>Stabilità Politica (WGI): <span style="color:white;">${data.stability}</span></p>
-                            <p>Controllo Corruzione: <span style="color:white;">${data.corruption}</span></p>
-                            <p>Apertura Commerciale: <span style="color:white;">${data.trade}</span></p>
+                            <p>GDP Growth: <span style="color:white;">${data.growth || 'N/A'}</span></p>
+                            <p>Debito/PIL: <span style="color:white;">${data.debt || 'N/A'}</span></p>
+                            <p>Inflazione: <span style="color:white;">${data.inflation || 'N/A'}</span></p>
+                            <p>Cap. Borsa: <span style="color:white;">${data.mktCap || 'N/A'}</span></p>
                         </div>
                     </div>
                 `;
             }
+        }).catch(err => {
+            document.getElementById('wbData').innerHTML = '<span style="color:#888;">Dati macro non disponibili al momento</span>';
         });
     }
-}
-
-// FUNZIONE PLACEHOLDER PER LA PAGINA DEDICATA (Fase 2)
-function openDedicatedPage(iso3) {
-    alert("Apertura Dashboard Analitica per: " + iso3 + ". In fase di implementazione...");
 }
 
 function closeDetailView() {
