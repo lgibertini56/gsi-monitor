@@ -943,9 +943,7 @@
 
     const hasCache = loadCache(); renderAll();
     if (!hasCache) window.setTimeout(loadWorldBank, 500);
-  </script>
-</body>
-</html>
+<script>
 async function loadAccessMapFromGitHub() {
   try {
     setStatus("warn", "<strong>Caricamento mappa accessi...</strong>");
@@ -965,3 +963,6 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
+</script>
+</body>
+  </html>
