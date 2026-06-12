@@ -940,10 +940,9 @@
         renderTableOnly();
       });
     });
-
+loadAccessMapFromGitHub();
     const hasCache = loadCache(); renderAll();
     if (!hasCache) window.setTimeout(loadWorldBank, 500);
-<script>
 async function loadAccessMapFromGitHub() {
   try {
     setStatus("warn", "<strong>Caricamento mappa accessi...</strong>");
