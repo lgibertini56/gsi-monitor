@@ -963,16 +963,36 @@ async function loadAccessMapFromGitHub() {
 }
 loadAccessMapFromGitHub();
     // ASSISTENTE: Recupera dati da FMI, BIS, UN e Transparency International
+// ASSISTENTE POTENZIATO: Recupera dati reali da FMI, ONU e World Bank
 async function fetchAdditionalSources(iso3) {
-    // In questa fase impostiamo i contenitori, nei prossimi passi collegheremo le API reali
-    return {
-        debt: "Caricamento dati FMI...",
-        fdi: "Recupero flussi ONU...",
-        popGrowth: "Analisi demografica UN...",
-        mktCap: "Dati mercati BIS...",
-        stability: "Indice Transparency Intl...",
-        trade: "Apertura commerciale WB..."
-    };
+    try {
+        // Interroghiamo i database per: FDI, Debito, Crescita Pop, Cap. Borsa, Stabilità e Apertura Commerciale
+        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;NE.TRD.GNFS.ZS';
+        const response = await fetch(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`);
+        const data = await response.json();
+
+        // Se i dati esistono (nel secondo elemento dell'array restituito dall'API), li organizziamo
+        if (data && data[1]) {
+            const getVal = (id) => {
+                const item = data[1].find(i => i.indicator.id === id);
+                return item && item.value !== null ? item.value.toFixed(2) : "N/D";
+            };
+
+            return {
+                fdi: getVal('BX.KLT.DINV.WD.GD.ZS') + " %",
+                debt: getVal('GC.DOD.TOTL.GD.ZS') + " %",
+                popGrowth: getVal('SP.POP.GROW') + " %",
+                mktCap: getVal('CM.MKT.LCAP.GD.ZS') + " %",
+                stability: getVal('PV.EST'), // Indice di stabilità politica
+                trade: getVal('NE.TRD.GNFS.ZS') + " %"
+            };
+        }
+    } catch (e) {
+        console.error("Errore nel recupero dati istituzionali:", e);
+    }
+    
+    // Se qualcosa va storto, mostriamo N/A per non bloccare il sito
+    return { fdi: "N/A", debt: "N/A", popGrowth: "N/A", mktCap: "N/A", stability: "N/A", trade: "N/A" };
 }
     function showDetailView(codiceIso) {
 // AGGIUNTA: Chiamata alle nuove fonti istituzionali
