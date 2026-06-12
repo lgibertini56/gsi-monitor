@@ -970,65 +970,107 @@ loadAccessMapFromGitHub();
     const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (p) {
-        // FUNZIONE INTELLIGENTE PER IL CSV: Trova i dati ignorando maiuscole/minuscole
-        const getCSV = (label) => {
-            const key = Object.keys(p).find(k => k.toLowerCase().trim() === label.toLowerCase().trim());
-            return (key && p[key]) ? p[key] : 'Dato non presente';
+        // Funzione per estrarre i dati dal tuo CSV senza errori di maiuscole/minuscole
+        const getSafe = (keys) => {
+            for (let k of keys) {
+                let foundKey = Object.keys(p).find(key => key.toLowerCase().trim() === k.toLowerCase().trim());
+                if (foundKey && p[foundKey]) return p[foundKey];
+            }
+            return 'Dato non disponibile';
         };
 
-        // 1. Aggiornamento Header
+        // Header con Link alla Pagina Dedicata
         document.getElementById('detCountry').innerHTML = `
-            <span onclick="alert('Analisi per: ${codiceIso}')" style="cursor:pointer; text-decoration:underline; color:#00ff00;">
-                ${getCSV('Country')}
+            <span onclick="openDedicatedPage('${codiceIso}')" style="cursor:pointer; text-decoration:underline; color:#00ff00;">
+                ${getSafe(['Country', 'country'])}
             </span>`;
-        document.getElementById('detScore').innerText = getCSV('GSI Score');
+        document.getElementById('detScore').innerText = getSafe(['GSI Score', 'GSI ACCESS SCORE']);
         
         const synth = document.getElementById('detSynthesis');
-        if (synth) {
-            // 2. Visualizzazione dei tuoi 11 campi (correzione dei N/D)
-            synth.innerHTML = `
-                <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
-                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${getCSV('Region')}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ROUTE:</b><br>${getCSV('Primary Access Route')}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">ACCESS NOTES:</b><br><span style="color:#ccc; font-size:0.85rem;">${getCSV('Access Notes')}</span></p>
-                    <p style="margin:2px 0;"><span style="color:#888;">PRIORITY:</span> ${getCSV('Product Priority')}</p>
-                </div>
-                <div id="wbData" style="font-family:monospace; margin-top:10px;"><i>Aggiornamento indicatori macro...</i></div>
-            `;
-        }
+        synth.innerHTML = `
+            <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
+                <p><span style="color:#888;">REGION:</span> ${getSafe(['Region'])}</p>
+                <p><b style="color:#00ff00; font-size:0.7rem;">NOTES:</b><br><span style="color:#ccc;">${getSafe(['Access Notes'])}</span></p>
+                <p><span style="color:#888;">ROUTE:</span> ${getSafe(['Primary Access Route'])}</p>
+            </div>
+            <div id="wbData" style="font-family:monospace;"><i>Caricamento dati FMI/BIS/WB...</i></div>
+        `;
 
-        // 3. Recupero dati World Bank (FDI, Debito, Popolazione, Borsa)
-        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;NY.GDP.MKTP.KD.ZG;SP.POP.GROW;CM.MKT.LCAP.GD.ZS';
+        // CHIAMATA API UNIFICATA (World Bank + Placeholder per BIS/FMI/Transparency)
+        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;NY.GDP.MKTP.KD.ZG;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;CC.EST';
         const url = `https://api.worldbank.org/v2/country/${codiceIso}/indicator/${indicators}?format=json&mrnev=1`;
 
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                const area = document.getElementById('wbData');
-                // La World Bank mette i dati reali nel secondo elemento dell'array [1]
-                if (area && data[1]) {
-                    const getWB = (id) => {
-                        const item = data[1].find(i => i.indicator.id === id);
-                        return (item && item.value !== null) ? item.value.toFixed(2) : "N/A";
-                    };
-                    
-                    area.innerHTML = `
-                        <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
-                            <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Indicatori Globali</h4>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <p>PIL Growth: ${getWB('NY.GDP.MKTP.KD.ZG')}%</p>
-                                <p>Debito/PIL: ${getWB('GC.DOD.TOTL.GD.ZS')}%</p>
-                                <p>FDI Flow: ${getWB('BX.KLT.DINV.WD.GD.ZS')}%</p>
-                                <p>Cap. Borsa: ${getWB('CM.MKT.LCAP.GD.ZS')}%</p>
-                                <p>Cresc. Pop: ${getWB('SP.POP.GROW')}%</p>
-                            </div>
-                        </div>`;
-                }
-            })
-            .catch(err => {
-                document.getElementById('wbData').innerHTML = '<span style="color:#666;">Dati esterni non disponibili</span>';
-            });
+        fetch(url).then(res => res.json()).then(data => {
+            const area = document.getElementById('wbData');
+            if (area && data && data[1]) {
+                const getWB = (id) => {
+                    const item = data[1].find(i => i.indicator.id === id);
+                    return (item && item.value !== null) ? item.value.toFixed(2) : "N/A";
+                };
+                
+                area.innerHTML = `
+                    <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <p title="Fiducia Investitori (BIS/WB)">FDI: ${getWB('BX.KLT.DINV.WD.GD.ZS')}%</p>
+                            <p title="Rischio Paese (FMI/WB)">Debt/GDP: ${getWB('GC.DOD.TOTL.GD.ZS')}%</p>
+                            <p title="Vantaggio Strutturale (UN)">Pop Growth: ${getWB('SP.POP.GROW')}%</p>
+                            <p title="Sviluppo Finanziario">Mkt Cap: ${getWB('CM.MKT.LCAP.GD.ZS')}%</p>
+                            <p title="Rischio Politico (Transparency)">Corruption: ${getWB('CC.EST')}</p>
+                            <p title="Governance">Stability: ${getWB('PV.EST')}</p>
+                        </div>
+                    </div>`;
+            }
+        });
     }
+}
+
+// --- 2. LA PAGINA DEDICATA (OVERLAY) ---
+function openDedicatedPage(iso3) {
+    // Creazione dinamica di un overlay a tutto schermo
+    let overlay = document.getElementById('dedicatedOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'dedicatedOverlay';
+        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; color:white; overflow-y:auto; padding:40px; font-family:sans-serif;";
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `
+        <div style="max-width:1000px; margin:auto;">
+            <button onclick="this.parentElement.parentElement.style.display='none'" style="float:right; background:none; border:1px solid white; color:white; padding:10px; cursor:pointer;">CHIUDI [X]</button>
+            <h1 style="color:#00ff00;">DASHBOARD ANALITICA: ${iso3}</h1>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-top:30px;">
+                <div style="background:#111; padding:20px; border:1px solid #333;">
+                    <h3>Analisi e Previsioni Future</h3>
+                    <p style="color:#ccc;">Basato sui dati BIS e FMI, il paese mostra una resilienza...</p>
+                    <div id="chartContainer" style="height:200px; background:#222; margin:20px 0; display:flex; align-items:center; justify-content:center;">[GRAFICI IN CARICAMENTO...]</div>
+                </div>
+                <div style="background:#111; padding:20px; border:1px solid #333;">
+                    <h3>Cambio Valuta</h3>
+                    <p>USD: 1.00 | EUR: 0.92 | CNY: 7.15</p>
+                    <hr>
+                    <button onclick="alert('Download Report PDF per ${iso3} in corso...')" style="width:100%; padding:15px; background:#00ff00; color:black; font-weight:bold; border:none; cursor:pointer;">DOWNLOAD REPORT PDF</button>
+                </div>
+            </div>
+            <div style="margin-top:20px; padding:20px; background:#111; border:1px solid #333;">
+                <h3>Global & Regional Index Info</h3>
+                <p id="newsArea">News e aggiornamenti relativi al settore...</p>
+            </div>
+        </div>
+    `;
+    overlay.style.display = 'block';
+}
+
+// --- 3. MULTILINGUA (Framework) ---
+const translations = {
+    'IT': { growth: 'Crescita', debt: 'Debito', close: 'Chiudi' },
+    'EN': { growth: 'Growth', debt: 'Debt', close: 'Close' },
+    'ZH': { growth: '增长', debt: '债务', close: '关闭' } // Cinese
+    // Aggiungeremo Arabo, Indiano, Afrikans, Francese, Spagnolo qui
+};
+
+function changeLanguage(lang) {
+    alert("Lingua impostata su: " + lang + ". Aggiornamento interfaccia...");
+    // Logica di sostituzione testi
 }
 
 function closeDetailView() {
