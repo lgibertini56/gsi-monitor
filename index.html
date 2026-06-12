@@ -976,24 +976,19 @@ loadAccessMapFromGitHub();
     document.getElementById("detailPanel").classList.remove("hidden");
   }
 }
-    async function fetchAdditionalSources(iso3) {async function fetchAdditionalSources(iso3) {
+    async function fetchAdditionalSources(iso3) {
     try {
-        // Abbiamo esteso la chiamata includendo i codici per: 
-        // Crescita Popolazione (SP.POP.GROW) e Capitalizzazione Borsa (CM.MKT.LCAP.GD.ZS)
         const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;PV.EST;NE.TRD.GNFS.ZS;NY.GDP.MKTP.KD.ZG;FP.CPI.TOTL.ZG;CC.EST;SP.POP.GROW;CM.MKT.LCAP.GD.ZS';
         const url = `https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`;
-        
         const response = await fetch(url);
         const result = await response.json();
         
-        // CORREZIONE TECNICA: Accediamo al secondo elemento [1] dove risiedono i dati reali
         if (Array.isArray(result) && result[1]) {
             const dataArray = result[1];
             const getVal = (id) => {
                 const item = dataArray.find(i => i.indicator.id === id);
                 return (item && item.value !== null) ? item.value.toFixed(2) : "N/D";
             };
-            
             return {
                 fdi: getVal('BX.KLT.DINV.WD.GD.ZS') + " %",
                 debt: getVal('GC.DOD.TOTL.GD.ZS') + " %",
@@ -1006,11 +1001,51 @@ loadAccessMapFromGitHub();
                 mktCap: getVal('CM.MKT.LCAP.GD.ZS') + " %"
             };
         }
-    } catch (e) { 
-        console.error("Errore riga 979 - Connessione dati esterni:", e); 
-    }
-    // Ritorna N/A se la connessione fallisce per non bloccare il sito
+    } catch (e) { console.error("Errore fetch:", e); }
     return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A", growth: "N/A", inflation: "N/A", corruption: "N/A", popGrowth: "N/A", mktCap: "N/A" };
+}
+
+function showDetailView(codiceIso) {
+    const panel = document.getElementById('detailPanel');
+    if (panel) panel.classList.remove('hidden');
+
+    const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
+    const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
+    
+    if (p) {
+        document.getElementById('detCountry').innerText = p.Country || p.country || p.name || '-';
+        document.getElementById('detScore').innerText = p['GSI Score'] || p.score || '-';
+        
+        const synth = document.getElementById('detSynthesis');
+        if (synth) {
+            synth.innerHTML = `
+                <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:10px;">
+                    <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00;">PRIMARY ROUTE:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00;">ANALYSIS NOTES:</b><br><span style="color:#ccc;">${p['Access Notes'] || 'N/D'}</span></p>
+                </div>
+                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indici...</i></div>
+            `;
+        }
+
+        fetchAdditionalSources(codiceIso).then(data => {
+            const area = document.getElementById('wbData');
+            if (area) {
+                area.innerHTML = `
+                    <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
+                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Macro & Global Indicators</h4>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <p>Debito/PIL: ${data.debt}</p>
+                            <p>FDI Flow: ${data.fdi}</p>
+                            <p>PIL Growth: ${data.growth}</p>
+                            <p>Cap. Borsa: ${data.mktCap}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
 }
 
 function showDetailView(codiceIso) {
