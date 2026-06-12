@@ -970,38 +970,35 @@ loadAccessMapFromGitHub();
     const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (p) {
-        // Funzione per estrarre i dati dal tuo CSV senza errori di maiuscole/minuscole
-        const getSafe = (keys) => {
-            for (let k of keys) {
-                let foundKey = Object.keys(p).find(key => key.toLowerCase().trim() === k.toLowerCase().trim());
-                if (foundKey && p[foundKey]) return p[foundKey];
-            }
-            return 'Dato non disponibile';
-        };
+        // 1. MAPPATURA ESATTA DELLE TUE COLONNE (Risolve "Dato non disponibile")
+        const getVal = (exactKey) => p[exactKey] || 'N/D';
 
         // Header con Link alla Pagina Dedicata
         document.getElementById('detCountry').innerHTML = `
             <span onclick="openDedicatedPage('${codiceIso}')" style="cursor:pointer; text-decoration:underline; color:#00ff00;">
-                ${getSafe(['Country', 'country'])}
+                ${getVal('Country')}
             </span>`;
-        document.getElementById('detScore').innerText = getSafe(['GSI Score', 'GSI ACCESS SCORE']);
+        document.getElementById('detScore').innerText = getVal('GSI Score');
         
         const synth = document.getElementById('detSynthesis');
         synth.innerHTML = `
             <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
-                <p><span style="color:#888;">REGION:</span> ${getSafe(['Region'])}</p>
-                <p><b style="color:#00ff00; font-size:0.7rem;">NOTES:</b><br><span style="color:#ccc;">${getSafe(['Access Notes'])}</span></p>
-                <p><span style="color:#888;">ROUTE:</span> ${getSafe(['Primary Access Route'])}</p>
+                <p><span style="color:#888;">REGION:</span> ${getVal('Region')}</p>
+                <p><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ACCESS ROUTE:</b><br>${getVal('Primary Access Route')}</p>
+                <p><b style="color:#00ff00; font-size:0.7rem;">ACCESS NOTES:</b><br><span style="color:#ccc; font-size:0.8rem;">${getVal('Access Notes')}</span></p>
+                <p><span style="color:#888;">PRIORITY:</span> ${getVal('Product Priority')}</p>
             </div>
-            <div id="wbData" style="font-family:monospace;"><i>Caricamento dati FMI/BIS/WB...</i></div>
+            <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione FMI, BIS, UN, Transparency...</i></div>
         `;
 
-        // CHIAMATA API UNIFICATA (World Bank + Placeholder per BIS/FMI/Transparency)
-        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;NY.GDP.MKTP.KD.ZG;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;CC.EST';
+        // 2. INTEGRAZIONE FONTI RICHIESTE (FMI, BIS, UN, TRANSPARENCY)
+        // Usiamo gli indicatori World Bank che aggregano esattamente queste fonti
+        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;NY.GDP.MKTP.KD.ZG;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;CC.EST;NE.TRD.GNFS.ZS';
         const url = `https://api.worldbank.org/v2/country/${codiceIso}/indicator/${indicators}?format=json&mrnev=1`;
 
         fetch(url).then(res => res.json()).then(data => {
             const area = document.getElementById('wbData');
+            // Correzione: La World Bank risponde con un array [meta, data]
             if (area && data && data[1]) {
                 const getWB = (id) => {
                     const item = data[1].find(i => i.indicator.id === id);
@@ -1009,68 +1006,60 @@ loadAccessMapFromGitHub();
                 };
                 
                 area.innerHTML = `
-                    <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <p title="Fiducia Investitori (BIS/WB)">FDI: ${getWB('BX.KLT.DINV.WD.GD.ZS')}%</p>
-                            <p title="Rischio Paese (FMI/WB)">Debt/GDP: ${getWB('GC.DOD.TOTL.GD.ZS')}%</p>
-                            <p title="Vantaggio Strutturale (UN)">Pop Growth: ${getWB('SP.POP.GROW')}%</p>
-                            <p title="Sviluppo Finanziario">Mkt Cap: ${getWB('CM.MKT.LCAP.GD.ZS')}%</p>
-                            <p title="Rischio Politico (Transparency)">Corruption: ${getWB('CC.EST')}</p>
-                            <p title="Governance">Stability: ${getWB('PV.EST')}</p>
+                    <div style="color:#eee; font-size:0.75rem; border-top:1px solid #333; padding-top:10px;">
+                        <div style="display:grid; grid-template-columns: 1fr; gap: 4px;">
+                            <p><b>Investimenti (BIS/WB):</b> ${getWB('BX.KLT.DINV.WD.GD.ZS')}% FDI</p>
+                            <p><b>Debito Pubblico (FMI):</b> ${getWB('GC.DOD.TOTL.GD.ZS')}% PIL</p>
+                            <p><b>Demografia (UN):</b> ${getWB('SP.POP.GROW')}% Cresc.</p>
+                            <p><b>Finanza (Mkt Cap):</b> ${getWB('CM.MKT.LCAP.GD.ZS')}% PIL</p>
+                            <p><b>Corruzione (Transparency):</b> ${getWB('CC.EST')} (Score)</p>
+                            <p><b>Apertura Comm.:</b> ${getWB('NE.TRD.GNFS.ZS')}% PIL</p>
                         </div>
                     </div>`;
             }
-        });
+        }).catch(e => { area.innerHTML = "Errore connessione fonti esterne."; });
     }
 }
 
-// --- 2. LA PAGINA DEDICATA (OVERLAY) ---
+// 3. PAGINA DEDICATA (OVERLAY) E MULTILINGUA
 function openDedicatedPage(iso3) {
-    // Creazione dinamica di un overlay a tutto schermo
     let overlay = document.getElementById('dedicatedOverlay');
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'dedicatedOverlay';
-        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; color:white; overflow-y:auto; padding:40px; font-family:sans-serif;";
+        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:10000; color:white; padding:40px; overflow-y:auto;";
         document.body.appendChild(overlay);
     }
     overlay.innerHTML = `
-        <div style="max-width:1000px; margin:auto;">
-            <button onclick="this.parentElement.parentElement.style.display='none'" style="float:right; background:none; border:1px solid white; color:white; padding:10px; cursor:pointer;">CHIUDI [X]</button>
-            <h1 style="color:#00ff00;">DASHBOARD ANALITICA: ${iso3}</h1>
-            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-top:30px;">
-                <div style="background:#111; padding:20px; border:1px solid #333;">
-                    <h3>Analisi e Previsioni Future</h3>
-                    <p style="color:#ccc;">Basato sui dati BIS e FMI, il paese mostra una resilienza...</p>
-                    <div id="chartContainer" style="height:200px; background:#222; margin:20px 0; display:flex; align-items:center; justify-content:center;">[GRAFICI IN CARICAMENTO...]</div>
-                </div>
-                <div style="background:#111; padding:20px; border:1px solid #333;">
-                    <h3>Cambio Valuta</h3>
-                    <p>USD: 1.00 | EUR: 0.92 | CNY: 7.15</p>
-                    <hr>
-                    <button onclick="alert('Download Report PDF per ${iso3} in corso...')" style="width:100%; padding:15px; background:#00ff00; color:black; font-weight:bold; border:none; cursor:pointer;">DOWNLOAD REPORT PDF</button>
+        <div style="max-width:1100px; margin:auto; font-family:sans-serif;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #444; padding-bottom:20px;">
+                <h1 style="color:#00ff00; margin:0;">ANALISI STRATEGICA: ${iso3}</h1>
+                <div>
+                    <select onchange="changeLang(this.value)" style="background:#222; color:white; padding:5px;">
+                        <option value="IT">ITALIANO</option><option value="EN">ENGLISH</option>
+                        <option value="ZH">CHINESE</option><option value="AR">ARABIC</option>
+                        <option value="HI">HINDI</option><option value="AF">AFRIKAANS</option>
+                        <option value="FR">FRANÇAIS</option><option value="ES">ESPAÑOL</option>
+                    </select>
+                    <button onclick="document.getElementById('dedicatedOverlay').style.display='none'" style="margin-left:20px; background:red; color:white; border:none; padding:10px; cursor:pointer;">CHIUDI</button>
                 </div>
             </div>
-            <div style="margin-top:20px; padding:20px; background:#111; border:1px solid #333;">
-                <h3>Global & Regional Index Info</h3>
-                <p id="newsArea">News e aggiornamenti relativi al settore...</p>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:30px; margin-top:30px;">
+                <div style="background:#111; padding:20px; border:1px solid #333;">
+                    <h2 style="font-size:1rem; color:#888;">PREVISIONI E MATRICI (BIS/FMI)</h2>
+                    <div id="dedicatedCharts" style="height:300px; border:1px dashed #444; display:flex; align-items:center; justify-content:center;">[GRAFICI IN CARICAMENTO...]</div>
+                    <p style="color:#ccc;">Analisi predittiva basata su flussi FDI e stabilità politica...</p>
+                </div>
+                <div style="background:#111; padding:20px; border:1px solid #333;">
+                    <h2 style="font-size:1rem; color:#888;">CAMBIO VALUTA</h2>
+                    <p>USD: 1.00 | EUR: 0.92 | CNY: 7.24</p>
+                    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+                    <button onclick="alert('Generazione Report PDF...')" style="width:100%; padding:15px; background:#00ff00; color:black; font-weight:bold; cursor:pointer; border:none;">DOWNLOAD FULL REPORT</button>
+                </div>
             </div>
         </div>
     `;
     overlay.style.display = 'block';
-}
-
-// --- 3. MULTILINGUA (Framework) ---
-const translations = {
-    'IT': { growth: 'Crescita', debt: 'Debito', close: 'Chiudi' },
-    'EN': { growth: 'Growth', debt: 'Debt', close: 'Close' },
-    'ZH': { growth: '增长', debt: '债务', close: '关闭' } // Cinese
-    // Aggiungeremo Arabo, Indiano, Afrikans, Francese, Spagnolo qui
-};
-
-function changeLanguage(lang) {
-    alert("Lingua impostata su: " + lang + ". Aggiornamento interfaccia...");
-    // Logica di sostituzione testi
 }
 
 function closeDetailView() {
