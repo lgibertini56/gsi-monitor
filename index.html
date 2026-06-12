@@ -962,8 +962,33 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
+    // ASSISTENTE: Recupera dati da FMI, BIS, UN e Transparency International
+async function fetchAdditionalSources(iso3) {
+    // In questa fase impostiamo i contenitori, nei prossimi passi collegheremo le API reali
+    return {
+        debt: "Caricamento dati FMI...",
+        fdi: "Recupero flussi ONU...",
+        popGrowth: "Analisi demografica UN...",
+        mktCap: "Dati mercati BIS...",
+        stability: "Indice Transparency Intl...",
+        trade: "Apertura commerciale WB..."
+    };
+}
     function showDetailView(codiceIso) {
-  // Cerca il paese corrispondente al codice cliccato (es. 'ITA')
+// AGGIUNTA: Chiamata alle nuove fonti istituzionali
+    fetchAdditionalSources(codiceIso).then(data => {
+        const infoDiv = document.getElementById('detSynthesis');
+        // Aggiungiamo i nuovi dati in fondo alla sintesi esistente
+        infoDiv.innerHTML += `
+            <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px; font-size:0.85rem;">
+                <p><b>Debito Pubblico (FMI):</b> ${data.debt}</p>
+                <p><b>Investimenti FDI (ONU):</b> ${data.fdi}</p>
+                <p><b>Stabilità Politica (TI):</b> ${data.stability}</p>
+                <p><b>Cap. Borsa (BIS):</b> ${data.mktCap}</p>
+            </div>
+        `;
+    });
+      // Cerca il paese corrispondente al codice cliccato (es. 'ITA')
   const paese = rows.find(r => r.iso3 === codiceIso);
   
   if (paese) {
