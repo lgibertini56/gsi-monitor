@@ -992,7 +992,20 @@ loadAccessMapFromGitHub();
 function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
-
+ // AGGIUNTA: Recupera dati da FMI, ONU e World Bank
+    fetchAdditionalSources(codiceIso).then(data => {
+        const infoDiv = document.getElementById('detSynthesis');
+        if (infoDiv) {
+            infoDiv.innerHTML = `
+                <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px; font-size:0.85rem;">
+                    <p><b>Debito Pubblico (FMI):</b> ${data.debt}</p>
+                    <p><b>Investimenti FDI (ONU):</b> ${data.fdi}</p>
+                    <p><b>Stabilità Politica (TI):</b> ${data.stability}</p>
+                    <p><b>Apertura Commerciale:</b> ${data.trade}</p>
+                </div>
+            `;
+        }
+    });
     const country = gsiData.find(c => c.iso3 === codiceIso);
     if (country) {
         document.getElementById('detCountry').innerText = country.name;
