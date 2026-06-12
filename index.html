@@ -992,48 +992,52 @@ loadAccessMapFromGitHub();
                 debt: getVal('GC.DOD.TOTL.GD.ZS'),
                 stability: getVal('PV.EST').replace(" %", ""), // La stabilità non è una %
                 trade: getVal('NE.TRD.GNFS.ZS')
-           }
-    } catch (e) { console.error("Errore collegamento database:", e); }
+          } catch (e) { console.error("Errore connessione:", e); }
     return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A" };
 }
 
-// FUNZIONE PER MOSTRARE LA SCHEDA (BLUETOOTH)
 function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
     const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
+    const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
-    // CORREZIONE ISO3: Ora il codice trova il paese anche se nel CSV è scritto in MAIUSCOLO
-    const paese = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
-    
-    if (paese) {
-        // Mostra i dati base dal tuo CSV
-        document.getElementById('detCountry').innerText = paese.Country || paese.country || paese.name;
-        document.getElementById('detScore').innerText = paese['GSI Score'] || paese.score;
+    if (p) {
+        // 1. HEADER (Nome e GSI Score)
+        document.getElementById('detCountry').innerText = p.Country || p.country || p.name || 'N/A';
+        document.getElementById('detScore').innerText = p['GSI Score'] || p.score || 'N/A';
         
         const synth = document.getElementById('detSynthesis');
-        
-        // INTEGRAZIONE ALTRE FONTI: Route e Notes dal tuo file
+        if (!synth) return; 
+
+        // 2. TUTTI GLI 11 CAMPI DEL TUO CSV (Nessuno escluso)
         synth.innerHTML = `
-            <div style="margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
-                <p style="margin:5px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ROUTE:</b><br>${paese['Primary Access Route'] || 'Dato non disponibile'}</p>
-                <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">ANALYSIS NOTES:</b><br><span style="font-size:0.85rem; color:#ccc;">${paese['Access Notes'] || 'Nessuna nota presente per questo mercato.'}</span></p>
+            <div style="font-family:monospace; font-size:0.85rem; line-height:1.4; border-bottom:1px solid #444; padding-bottom:15px; margin-bottom:15px;">
+                <p style="margin:4px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
+                <p style="margin:4px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'}</p>
+                <p style="margin:4px 0;"><span style="color:#888;">ACCESS SCORE:</span> ${p['Access Score'] || 'N/D'}</p>
+                <p style="margin:4px 0;"><span style="color:#888;">PRODUCT PRIORITY:</span> ${p['Product Priority'] || 'N/D'}</p>
+                <p style="margin:4px 0;"><span style="color:#888;">VERIFICATION:</span> ${p['Verification Status'] || 'N/D'}</p>
+                <p style="margin:4px 0;"><span style="color:#888;">SOURCE:</span> ${p.Source || 'N/D'}</p>
+                
+                <p style="margin:12px 0 4px 0;"><b style="color:#00ff00;">PRIMARY ACCESS ROUTE:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
+                <p style="margin:4px 0;"><b style="color:#00ff00;">ACCESS NOTES:</b><br><span style="color:#ccc;">${p['Access Notes'] || 'N/D'}</span></p>
             </div>
-            <div id="wbData" style="font-size:0.8rem; color:#888;"><i>Recupero indicatori macro in corso...</i></div>
+            <div id="wbData" style="font-family:monospace;"><i>Caricamento indicatori macro...</i></div>
         `;
 
-        // Recupera i dati dalla World Bank
+        // 3. I 4 INDICATORI WORLD BANK
         fetchAdditionalSources(codiceIso).then(data => {
-            const wbContainer = document.getElementById('wbData');
-            if(wbContainer) {
-                wbContainer.innerHTML = `
-                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #333; color:#eee;">
-                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Market Indicators</h4>
-                        <p style="margin:3px 0;"><b>Debito/PIL:</b> ${data.debt}</p>
-                        <p style="margin:3px 0;"><b>Flussi FDI:</b> ${data.fdi}</p>
-                        <p style="margin:3px 0;"><b>Stabilità:</b> ${data.stability}</p>
-                        <p style="margin:3px 0;"><b>Trade %:</b> ${data.trade}</p>
+            const wbArea = document.getElementById('wbData');
+            if (wbArea) {
+                wbArea.innerHTML = `
+                    <div style="color:#eee; font-size:0.85rem; border-top:1px solid #333; padding-top:10px;">
+                        <h4 style="color:#00ff00; font-size:0.7rem; text-transform:uppercase; margin-bottom:8px;">Market Indicators</h4>
+                        <p style="margin:2px 0;">DEBITO/PIL: ${data.debt}</p>
+                        <p style="margin:2px 0;">FDI INFLOWS: ${data.fdi}</p>
+                        <p style="margin:2px 0;">STABILITÀ POLITICA: ${data.stability}</p>
+                        <p style="margin:2px 0;">APERTURA COMMERCIALE: ${data.trade}</p>
                     </div>
                 `;
             }
@@ -1041,28 +1045,20 @@ function showDetailView(codiceIso) {
     }
 }
 
-// FUNZIONE PER CHIUDERE LA SCHEDA
 function closeDetailView() {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.add('hidden');
 }
 </script>
 
-<!-- Pannello GSI Info (HTML PROFESSIONALE) -->
-<div id="detailPanel" class="hidden" style="position:fixed; top:0; right:0; width:350px; height:100%; background:#111; color:white; border-left:1px solid #333; padding:20px; z-index:9999; box-shadow:-5px 0 15px rgba(0,0,0,0.5); overflow-y:auto;">
-    <button onclick="closeDetailView()" style="background:none; border:none; color:#888; cursor:pointer; float:right; font-size:25px;">✕</button>
-    
-    <h2 id="detCountry" style="color:#00ff00; margin-top:0; font-family:monospace; text-transform:uppercase; font-size:1.4rem;">Paese</h2>
-    
-    <div style="margin:20px 0; border-bottom:1px solid #333; padding-bottom:10px;">
-        <span style="color:#888; font-size:0.7rem; letter-spacing:1px; text-transform:uppercase;">GSI Access Score</span><br>
-        <span id="detScore" style="font-size:2.5rem; font-weight:bold; font-family:monospace;">-</span>
+<div id="detailPanel" class="hidden" style="position:fixed; top:0; right:0; width:380px; height:100%; background:#0a0a0a; color:white; border-left:1px solid #333; padding:25px; z-index:9999; box-shadow:-10px 0 30px rgba(0,0,0,0.8); overflow-y:auto;">
+    <button onclick="closeDetailView()" style="background:none; border:none; color:#00ff00; cursor:pointer; float:right; font-size:30px;">&times;</button>
+    <h2 id="detCountry" style="color:#00ff00; margin-top:0; font-family:monospace; text-transform:uppercase; border-bottom: 2px solid #00ff00; padding-bottom: 10px;">-</h2>
+    <div style="margin:20px 0; background:#1a1a1a; padding:15px; border-left:4px solid #00ff00;">
+        <span style="color:#888; font-size:0.75rem; letter-spacing:1px;">GSI ACCESS SCORE</span><br>
+        <span id="detScore" style="font-size:2.8rem; font-weight:bold; font-family:monospace;">-</span>
     </div>
-
-    <div style="background:#1a1a1a; padding:15px; border-radius:4px; border:1px solid #333;">
-        <h4 style="margin:0 0 10px 0; font-size:0.7rem; color:#00ff00; text-transform:uppercase;">GSI Info & Synthesis</h4>
-        <p id="detSynthesis" style="line-height:1.6; color:#ddd; font-size:0.95rem; margin:0;">Seleziona un paese per visualizzare l'analisi di sintesi.</p>
-    </div>
+    <div id="detSynthesis"></div>
 </div>
 </body>
-  </html>
+</html>
