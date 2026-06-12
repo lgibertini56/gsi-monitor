@@ -963,49 +963,6 @@ async function loadAccessMapFromGitHub() {
 }
 loadAccessMapFromGitHub();
     function showDetailView(codiceIso) {
-  // Cerca il paese corrispondente al codice cliccato (es. 'ITA')
-  const paese = rows.find(r => r.iso3 === codiceIso);
-  
-  if (paese) {
-    // Se lo trova, riempie la scheda di dettaglio con i dati reali
-    document.getElementById("detCountry").textContent = paese.country;
-    document.getElementById("detScore").textContent = paese.score;
-    document.getElementById("detSynthesis").textContent = paese.synthesis || "Dati non disponibili";
-    
-    // Rende visibile la scheda laterale
-    document.getElementById("detailPanel").classList.remove("hidden");
-  }
-}
-    async function fetchAdditionalSources(iso3) {
-    try {
-        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;PV.EST;NE.TRD.GNFS.ZS;NY.GDP.MKTP.KD.ZG;FP.CPI.TOTL.ZG;CC.EST;SP.POP.GROW;CM.MKT.LCAP.GD.ZS';
-        const url = `https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`;
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        if (Array.isArray(result) && result[1]) {
-            const dataArray = result[1];
-            const getVal = (id) => {
-                const item = dataArray.find(i => i.indicator.id === id);
-                return (item && item.value !== null) ? item.value.toFixed(2) : "N/D";
-            };
-            return {
-                fdi: getVal('BX.KLT.DINV.WD.GD.ZS') + " %",
-                debt: getVal('GC.DOD.TOTL.GD.ZS') + " %",
-                stability: getVal('PV.EST'), 
-                trade: getVal('NE.TRD.GNFS.ZS') + " %",
-                growth: getVal('NY.GDP.MKTP.KD.ZG') + " %",
-                inflation: getVal('FP.CPI.TOTL.ZG') + " %",
-                corruption: getVal('CC.EST'),
-                popGrowth: getVal('SP.POP.GROW') + " %",
-                mktCap: getVal('CM.MKT.LCAP.GD.ZS') + " %"
-            };
-        }
-    } catch (e) { console.error("Errore fetch:", e); }
-    return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A", growth: "N/A", inflation: "N/A", corruption: "N/A", popGrowth: "N/A", mktCap: "N/A" };
-}
-
-function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
@@ -1013,33 +970,50 @@ function showDetailView(codiceIso) {
     const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (p) {
-        document.getElementById('detCountry').innerText = p.Country || p.country || p.name || '-';
+        // TRASFORMAZIONE NOME IN LINK (Inizio Fase 2)
+        document.getElementById('detCountry').innerHTML = `
+            <span onclick="openDedicatedPage('${codiceIso}')" style="cursor:pointer; text-decoration:underline; hover:color:#fff;">
+                ${p.Country || p.country || p.name}
+            </span>`;
+        
         document.getElementById('detScore').innerText = p['GSI Score'] || p.score || '-';
         
         const synth = document.getElementById('detSynthesis');
         if (synth) {
+            // VISUALIZZAZIONE DI TUTTI GLI 11 CAMPI DEL TUO CSV
             synth.innerHTML = `
-                <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:10px;">
+                <div style="font-family:monospace; font-size:0.85rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
                     <p style="margin:2px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
-                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00;">PRIMARY ROUTE:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
-                    <p style="margin:10px 0;"><b style="color:#00ff00;">ANALYSIS NOTES:</b><br><span style="color:#ccc;">${p['Access Notes'] || 'N/D'}</span></p>
+                    <p style="margin:2px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'} (Score: ${p['Access Score'] || 'N/D'})</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem; text-transform:uppercase;">Primary Access Route:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
+                    <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem; text-transform:uppercase;">Access Notes & Analysis:</b><br><span style="color:#ccc; font-size:0.8rem;">${p['Access Notes'] || 'N/D'}</span></p>
+                    <p style="margin:2px 0;"><span style="color:#888;">PRODUCT PRIORITY:</span> ${p['Product Priority'] || 'N/D'}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">VERIFICATION:</span> ${p['Verification Status'] || 'N/D'}</p>
+                    <p style="margin:2px 0;"><span style="color:#888;">SOURCE:</span> ${p.Source || 'GSI Database'}</p>
                 </div>
-                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indici...</i></div>
+                <div id="wbData" style="font-family:monospace;"><i>Sincronizzazione indicatori macro...</i></div>
             `;
         }
 
+        // CARICAMENTO E VISUALIZZAZIONE DEI 9 INDICATORI WORLD BANK (Fase 1)
         fetchAdditionalSources(codiceIso).then(data => {
             const area = document.getElementById('wbData');
             if (area) {
                 area.innerHTML = `
                     <div style="color:#eee; font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
-                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Macro & Global Indicators</h4>
+                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #222;">Market & Structural Risk</h4>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <p>Debito/PIL: ${data.debt}</p>
-                            <p>FDI Flow: ${data.fdi}</p>
-                            <p>PIL Growth: ${data.growth}</p>
-                            <p>Cap. Borsa: ${data.mktCap}</p>
+                            <p title="Fiducia Investitori">FDI Flow: <span style="color:white;">${data.fdi}</span></p>
+                            <p title="Rischio Sovrano">Debito/PIL: <span style="color:white;">${data.debt}</span></p>
+                            <p title="Crescita Reale">GDP Growth: <span style="color:white;">${data.growth}</span></p>
+                            <p title="Potere d'Acquisto">Inflazione: <span style="color:white;">${data.inflation}</span></p>
+                            <p title="Sviluppo Finanziario">Cap. Borsa: <span style="color:white;">${data.mktCap}</span></p>
+                            <p title="Vantaggio Demografico">Cresc. Pop: <span style="color:white;">${data.popGrowth}</span></p>
+                        </div>
+                        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #333; font-size:0.75rem; color:#aaa;">
+                            <p>Stabilità Politica (WGI): <span style="color:white;">${data.stability}</span></p>
+                            <p>Controllo Corruzione: <span style="color:white;">${data.corruption}</span></p>
+                            <p>Apertura Commerciale: <span style="color:white;">${data.trade}</span></p>
                         </div>
                     </div>
                 `;
@@ -1048,53 +1022,9 @@ function showDetailView(codiceIso) {
     }
 }
 
-function showDetailView(codiceIso) {
-    const panel = document.getElementById('detailPanel');
-    if (panel) panel.classList.remove('hidden');
-
-    const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
-    const p = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
-    
-    if (p) {
-        // 1. HEADER (Nome e GSI Score)
-        document.getElementById('detCountry').innerText = p.Country || p.country || p.name || 'N/A';
-        document.getElementById('detScore').innerText = p['GSI Score'] || p.score || 'N/A';
-        
-        const synth = document.getElementById('detSynthesis');
-        if (!synth) return; 
-
-        // 2. TUTTI GLI 11 CAMPI DEL TUO CSV (Nessuno escluso)
-        synth.innerHTML = `
-            <div style="font-family:monospace; font-size:0.85rem; line-height:1.4; border-bottom:1px solid #444; padding-bottom:15px; margin-bottom:15px;">
-                <p style="margin:4px 0;"><span style="color:#888;">REGION:</span> ${p.Region || 'N/D'}</p>
-                <p style="margin:4px 0;"><span style="color:#888;">ACCESS LEVEL:</span> ${p['Access Level'] || 'N/D'}</p>
-                <p style="margin:4px 0;"><span style="color:#888;">ACCESS SCORE:</span> ${p['Access Score'] || 'N/D'}</p>
-                <p style="margin:4px 0;"><span style="color:#888;">PRODUCT PRIORITY:</span> ${p['Product Priority'] || 'N/D'}</p>
-                <p style="margin:4px 0;"><span style="color:#888;">VERIFICATION:</span> ${p['Verification Status'] || 'N/D'}</p>
-                <p style="margin:4px 0;"><span style="color:#888;">SOURCE:</span> ${p.Source || 'N/D'}</p>
-                
-                <p style="margin:12px 0 4px 0;"><b style="color:#00ff00;">PRIMARY ACCESS ROUTE:</b><br>${p['Primary Access Route'] || 'N/D'}</p>
-                <p style="margin:4px 0;"><b style="color:#00ff00;">ACCESS NOTES:</b><br><span style="color:#ccc;">${p['Access Notes'] || 'N/D'}</span></p>
-            </div>
-            <div id="wbData" style="font-family:monospace;"><i>Caricamento indicatori macro...</i></div>
-        `;
-
-        // 3. I 4 INDICATORI WORLD BANK
-        fetchAdditionalSources(codiceIso).then(data => {
-            const wbArea = document.getElementById('wbData');
-            if (wbArea) {
-                wbArea.innerHTML = `
-                    <div style="color:#eee; font-size:0.85rem; border-top:1px solid #333; padding-top:10px;">
-                        <h4 style="color:#00ff00; font-size:0.7rem; text-transform:uppercase; margin-bottom:8px;">Market Indicators</h4>
-                        <p style="margin:2px 0;">DEBITO/PIL: ${data.debt}</p>
-                        <p style="margin:2px 0;">FDI INFLOWS: ${data.fdi}</p>
-                        <p style="margin:2px 0;">STABILITÀ POLITICA: ${data.stability}</p>
-                        <p style="margin:2px 0;">APERTURA COMMERCIALE: ${data.trade}</p>
-                    </div>
-                `;
-            }
-        });
-    }
+// FUNZIONE PLACEHOLDER PER LA PAGINA DEDICATA (Fase 2)
+function openDedicatedPage(iso3) {
+    alert("Apertura Dashboard Analitica per: " + iso3 + ". In fase di implementazione...");
 }
 
 function closeDetailView() {
