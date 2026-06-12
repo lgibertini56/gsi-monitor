@@ -962,7 +962,7 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
-   async function fetchAdditionalSources(iso3) {
+  async function fetchAdditionalSources(iso3) {
     try {
         const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;NE.TRD.GNFS.ZS';
         const response = await fetch(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`);
@@ -993,14 +993,11 @@ function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
-    // Recuperiamo nome e punteggio dalla tua lista dei 91 paesi
     const country = gsiData.find(c => c.iso3 === codiceIso);
     if (country) {
         document.getElementById('detCountry').innerText = country.name;
         document.getElementById('detScore').innerText = country.score;
     }
-    
-    document.getElementById('detSynthesis').innerHTML = "<i>Recupero dati in corso...</i>";
 
     fetchAdditionalSources(codiceIso).then(data => {
         const infoDiv = document.getElementById('detSynthesis');
