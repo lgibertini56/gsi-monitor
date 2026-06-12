@@ -770,7 +770,7 @@
 
       els.tableSub.textContent = filtered.length + " paesi visualizzati";
       els.rows.innerHTML = filtered.map(row => `
-        <tr>
+        <tr onclick="showDetailView(row)" style="cursor:pointer">
           <td><div class="country"><span class="iso">${row.iso3}</span><strong>${row.country}</strong></div></td>
           <td><span class="tag">${row.region}</span></td>
           <td class="num">${formatMoney(row.gdp)} <span class="missing">${row.gdpYear ? `(${row.gdpYear})` : ''}</span></td>
