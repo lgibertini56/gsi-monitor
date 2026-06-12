@@ -962,58 +962,83 @@ async function loadAccessMapFromGitHub() {
   }
 }
 loadAccessMapFromGitHub();
-    // ASSISTENTE: Recupera dati da FMI, BIS, UN e Transparency International
-async function fetchAdditionalSources(iso3) {
+  async function fetchAdditionalSources(iso3) {
     try {
         const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;SP.POP.GROW;CM.MKT.LCAP.GD.ZS;PV.EST;NE.TRD.GNFS.ZS';
         const response = await fetch(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`);
-        const result = await response.json();
+        const data = await response.json();
 
-        // Questa parte trasforma i dati grezzi in numeri leggibili
-        if (result && result[1]) {
+        if (data && data[1]) {
             const getVal = (id) => {
-                const item = result[1].find(i => i.indicator.id === id);
+                const item = data[1].find(i => i.indicator.id === id);
                 return item && item.value !== null ? item.value.toFixed(2) : "N/D";
             };
 
             return {
                 fdi: getVal('BX.KLT.DINV.WD.GD.ZS') + " %",
                 debt: getVal('GC.DOD.TOTL.GD.ZS') + " %",
+                popGrowth: getVal('SP.POP.GROW') + " %",
+                mktCap: getVal('CM.MKT.LCAP.GD.ZS') + " %",
                 stability: getVal('PV.EST'),
                 trade: getVal('NE.TRD.GNFS.ZS') + " %"
             };
         }
     } catch (e) {
-        console.error("Errore recupero dati istituzionali:", e);
+        console.error(e);
     }
-    return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A" };
+    return { fdi: "N/A", debt: "N/A", popGrowth: "N/A", mktCap: "N/A", stability: "N/A", trade: "N/A" };
 }
 
 function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
-
-    // Trova il paese nella tua lista gsiData (i 91 paesi)
+ // AGGIUNTA: Recupera dati da FMI, ONU e World Bank
+    fetchAdditionalSources(codiceIso).then(data => {
+        const infoDiv = document.getElementById('detSynthesis');
+        if (infoDiv) {
+            infoDiv.innerHTML = `
+                <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px; font-size:0.85rem;">
+                    <p><b>Debito Pubblico (FMI):</b> ${data.debt}</p>
+                    <p><b>Investimenti FDI (ONU):</b> ${data.fdi}</p>
+                    <p><b>Stabilità Politica (TI):</b> ${data.stability}</p>
+                    <p><b>Apertura Commerciale:</b> ${data.trade}</p>
+                </div>
+            `;
+        }
+    });
     const country = gsiData.find(c => c.iso3 === codiceIso);
     if (country) {
         document.getElementById('detCountry').innerText = country.name;
         document.getElementById('detScore').innerText = country.score;
     }
 
-    const synthesisDiv = document.getElementById('detSynthesis');
-    synthesisDiv.innerHTML = "<i>Aggiornamento dati istituzionali...</i>";
-
-    // Chiama il motore per sostituire il "caricamento" con i dati reali
     fetchAdditionalSources(codiceIso).then(data => {
-        synthesisDiv.innerHTML = `
-            <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px; font-size:0.85rem; color:#ccc;">
-                <p><b>Debito Pubblico (FMI):</b> ${data.debt}</p>
-                <p><b>Investimenti FDI (ONU):</b> ${data.fdi}</p>
-                <p><b>Stabilità Politica (TI):</b> ${data.stability}</p>
-                <p><b>Apertura Commerciale:</b> ${data.trade}</p>
-            </div>
-        `;
+        const infoDiv = document.getElementById('detSynthesis');
+        if (infoDiv) {
+            infoDiv.innerHTML = `
+                <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px; font-size:0.85rem;">
+                    <p><b>Debito Pubblico (FMI):</b> ${data.debt}</p>
+                    <p><b>Investimenti FDI (ONU):</b> ${data.fdi}</p>
+                    <p><b>Stabilità Politica (TI):</b> ${data.stability}</p>
+                    <p><b>Cap. Borsa (BIS):</b> ${data.mktCap}</p>
+                    <p><b>Apertura Commerciale:</b> ${data.trade}</p>
+                </div>
+            `;
+        }
     });
+}
+      // Cerca il paese corrispondente al codice cliccato (es. 'ITA')
+  const paese = rows.find(r => r.iso3 === codiceIso);
+  
+  if (paese) {
+    // Se lo trova, riempie la scheda di dettaglio con i dati reali
+    document.getElementById("detCountry").textContent = paese.country;
+    document.getElementById("detScore").textContent = paese.score;
+    document.getElementById("detSynthesis").textContent = paese.synthesis || "Dati non disponibili";
+    
+    // Rende visibile la scheda laterale
+    document.getElementById("detailPanel").classList.remove("hidden");
+  }
 }
 </script>
   <!-- Pannello GSI Info -->
