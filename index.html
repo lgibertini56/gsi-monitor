@@ -976,6 +976,61 @@ loadAccessMapFromGitHub();
     document.getElementById("detailPanel").classList.remove("hidden");
   }
 }
+    async function fetchAdditionalSources(iso3) {
+    try {
+        const indicators = 'BX.KLT.DINV.WD.GD.ZS;GC.DOD.TOTL.GD.ZS;PV.EST;NE.TRD.GNFS.ZS';
+        const response = await fetch(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicators}?format=json&mrnev=1`);
+        const result = await response.json();
+        
+        if (result && result[1]) {
+            const getVal = (id) => {
+                const item = result[1].find(i => i.indicator.id === id);
+                return item && item.value !== null ? item.value.toFixed(2) + " %" : "N/D";
+            };
+            return {
+                fdi: getVal('BX.KLT.DINV.WD.GD.ZS'),
+                debt: getVal('GC.DOD.TOTL.GD.ZS'),
+                stability: getVal('PV.EST').replace(" %", ""), // La stabilità non è una %
+                trade: getVal('NE.TRD.GNFS.ZS')
+            };
+        }
+    } catch (e) { console.error("Errore nel recupero dati istituzionali:", e); }
+    return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A" };
+}
+
+// LA FUNZIONE PER MOSTRARE LA SCHEDA
+function showDetailView(codiceIso) {
+    const panel = document.getElementById('detailPanel');
+    if (panel) panel.classList.remove('hidden');
+
+    // Cerca il paese in modo universale
+    const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
+    const paese = dataPool.find(c => c.iso3 === codiceIso);
+    
+    if (paese) {
+        document.getElementById('detCountry').innerText = paese.country || paese.name;
+        document.getElementById('detScore').innerText = paese.score;
+        const synth = document.getElementById('detSynthesis');
+        synth.innerHTML = "<i>Aggiornamento dati istituzionali in corso...</i>";
+
+        fetchAdditionalSources(codiceIso).then(data => {
+            synth.innerHTML = `
+                <div style="margin-top:15px; border-top:1px solid #444; padding-top:10px; font-size:0.85rem; color:#eee;">
+                    <p><b>Debito Pubblico:</b> ${data.debt}</p>
+                    <p><b>Investimenti FDI:</b> ${data.fdi}</p>
+                    <p><b>Stabilità Politica:</b> ${data.stability}</p>
+                    <p><b>Apertura Commerciale:</b> ${data.trade}</p>
+                </div>
+            `;
+        });
+    }
+}
+
+// LA FUNZIONE PER CHIUDERE LA SCHEDA
+function closeDetailView() {
+    const panel = document.getElementById('detailPanel');
+    if (panel) panel.classList.add('hidden');
+}
 </script>
   <!-- Pannello GSI Info -->
 <div id="detailPanel" class="hidden" style="position:fixed; top:0; right:0; width:350px; height:100%; background:#111; color:white; border-left:1px solid #333; padding:20px; z-index:9999; box-shadow:-5px 0 15px rgba(0,0,0,0.5); overflow-y:auto;">
