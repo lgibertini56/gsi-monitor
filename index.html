@@ -992,54 +992,70 @@ loadAccessMapFromGitHub();
                 debt: getVal('GC.DOD.TOTL.GD.ZS'),
                 stability: getVal('PV.EST').replace(" %", ""), // La stabilità non è una %
                 trade: getVal('NE.TRD.GNFS.ZS')
-            };
-        }
-    } catch (e) { console.error("Errore nel recupero dati istituzionali:", e); }
+           }
+    } catch (e) { console.error("Errore collegamento database:", e); }
     return { fdi: "N/A", debt: "N/A", stability: "N/A", trade: "N/A" };
 }
 
-// LA FUNZIONE PER MOSTRARE LA SCHEDA
+// FUNZIONE PER MOSTRARE LA SCHEDA (BLUETOOTH)
 function showDetailView(codiceIso) {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.remove('hidden');
 
-    // Cerca il paese in modo universale
     const dataPool = (typeof rows !== 'undefined') ? rows : (typeof gsiData !== 'undefined' ? gsiData : []);
-    const paese = dataPool.find(c => c.iso3 === codiceIso);
+    
+    // CORREZIONE ISO3: Ora il codice trova il paese anche se nel CSV è scritto in MAIUSCOLO
+    const paese = dataPool.find(c => (c.ISO3 || c.iso3 || c.code) === codiceIso);
     
     if (paese) {
-        document.getElementById('detCountry').innerText = paese.country || paese.name;
-        document.getElementById('detScore').innerText = paese.score;
+        // Mostra i dati base dal tuo CSV
+        document.getElementById('detCountry').innerText = paese.Country || paese.country || paese.name;
+        document.getElementById('detScore').innerText = paese['GSI Score'] || paese.score;
+        
         const synth = document.getElementById('detSynthesis');
-        synth.innerHTML = "<i>Aggiornamento dati istituzionali in corso...</i>";
+        
+        // INTEGRAZIONE ALTRE FONTI: Route e Notes dal tuo file
+        synth.innerHTML = `
+            <div style="margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
+                <p style="margin:5px 0;"><b style="color:#00ff00; font-size:0.7rem;">PRIMARY ROUTE:</b><br>${paese['Primary Access Route'] || 'Dato non disponibile'}</p>
+                <p style="margin:10px 0;"><b style="color:#00ff00; font-size:0.7rem;">ANALYSIS NOTES:</b><br><span style="font-size:0.85rem; color:#ccc;">${paese['Access Notes'] || 'Nessuna nota presente per questo mercato.'}</span></p>
+            </div>
+            <div id="wbData" style="font-size:0.8rem; color:#888;"><i>Recupero indicatori macro in corso...</i></div>
+        `;
 
+        // Recupera i dati dalla World Bank
         fetchAdditionalSources(codiceIso).then(data => {
-            synth.innerHTML = `
-                <div style="margin-top:15px; border-top:1px solid #444; padding-top:10px; font-size:0.85rem; color:#eee;">
-                    <p><b>Debito Pubblico:</b> ${data.debt}</p>
-                    <p><b>Investimenti FDI:</b> ${data.fdi}</p>
-                    <p><b>Stabilità Politica:</b> ${data.stability}</p>
-                    <p><b>Apertura Commerciale:</b> ${data.trade}</p>
-                </div>
-            `;
+            const wbContainer = document.getElementById('wbData');
+            if(wbContainer) {
+                wbContainer.innerHTML = `
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #333; color:#eee;">
+                        <h4 style="color:#00ff00; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Market Indicators</h4>
+                        <p style="margin:3px 0;"><b>Debito/PIL:</b> ${data.debt}</p>
+                        <p style="margin:3px 0;"><b>Flussi FDI:</b> ${data.fdi}</p>
+                        <p style="margin:3px 0;"><b>Stabilità:</b> ${data.stability}</p>
+                        <p style="margin:3px 0;"><b>Trade %:</b> ${data.trade}</p>
+                    </div>
+                `;
+            }
         });
     }
 }
 
-// LA FUNZIONE PER CHIUDERE LA SCHEDA
+// FUNZIONE PER CHIUDERE LA SCHEDA
 function closeDetailView() {
     const panel = document.getElementById('detailPanel');
     if (panel) panel.classList.add('hidden');
 }
 </script>
-  <!-- Pannello GSI Info -->
+
+<!-- Pannello GSI Info (HTML PROFESSIONALE) -->
 <div id="detailPanel" class="hidden" style="position:fixed; top:0; right:0; width:350px; height:100%; background:#111; color:white; border-left:1px solid #333; padding:20px; z-index:9999; box-shadow:-5px 0 15px rgba(0,0,0,0.5); overflow-y:auto;">
-    <button onclick="document.getElementById('detailPanel').classList.add('hidden')" style="background:none; border:none; color:#888; cursor:pointer; float:right; font-size:25px;">✕</button>
+    <button onclick="closeDetailView()" style="background:none; border:none; color:#888; cursor:pointer; float:right; font-size:25px;">✕</button>
     
-    <h2 id="detCountry" style="color:#00ff00; margin-top:0; font-family:monospace; text-transform:uppercase;">Paese</h2>
+    <h2 id="detCountry" style="color:#00ff00; margin-top:0; font-family:monospace; text-transform:uppercase; font-size:1.4rem;">Paese</h2>
     
     <div style="margin:20px 0; border-bottom:1px solid #333; padding-bottom:10px;">
-        <span style="color:#888; font-size:0.8rem; letter-spacing:1px;">GSI ACCESS SCORE</span><br>
+        <span style="color:#888; font-size:0.7rem; letter-spacing:1px; text-transform:uppercase;">GSI Access Score</span><br>
         <span id="detScore" style="font-size:2.5rem; font-weight:bold; font-family:monospace;">-</span>
     </div>
 
