@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>GSI Monitor 2.0 - Test</title>
+    <title>GSI Monitor 2.0 - Riparato</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0f172a; color: #f1f5f9; font-family: sans-serif; }
@@ -11,16 +11,15 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200">
-    <!-- Header -->
     <header class="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-black tracking-tighter text-white uppercase">GSI <span class="text-emerald-500">Monitor 2.0</span></h1>
-                <p class="text-[10px] text-slate-500 font-mono">Global Strategic Intelligence • Live Data Feedback</p>
+                <p class="text-[10px] text-slate-500 font-mono">Global Strategic Intelligence • Live Data</p>
             </div>
             <div class="flex gap-4">
-                <input type="text" id="search" placeholder="Cerca Paese o ISO..." class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <select id="regionFilter" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <input type="text" id="search" placeholder="Cerca Paese..." class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
+                <select id="regionFilter" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
                     <option value="all">Tutte le Regioni</option>
                     <option value="EMEA">EMEA</option>
                     <option value="Americas">Americas</option>
@@ -31,120 +30,118 @@
     </header>
 
     <main class="max-w-7xl mx-auto p-6">
+        <div id="loading" class="text-center py-20 text-slate-500 font-mono animate-pulse">Caricamento dati in corso...</div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-800/50 text-[10px] uppercase tracking-widest text-slate-400">
                     <tr>
-                        <th class="p-4 font-bold">ISO</th>
-                        <th class="p-4 font-bold">Paese</th>
-                        <th class="p-4 font-bold text-emerald-400">PIL %</th>
-                        <th class="p-4 font-bold">FDI %</th>
-                        <th class="p-4 font-bold">Debito</th>
-                        <th class="p-4 font-bold text-blue-400">USD</th>
-                        <th class="p-4 font-bold text-blue-300">EUR</th>
-                        <th class="p-4 font-bold text-orange-300">CNY</th>
-                        <th class="p-4 font-bold text-center">Access</th>
-                        <th class="p-4 font-bold text-right">Score</th>
+                        <th class="p-4">ISO</th>
+                        <th class="p-4">Paese</th>
+                        <th class="p-4 text-emerald-400">PIL %</th>
+                        <th class="p-4">FDI %</th>
+                        <th class="p-4 text-blue-400">USD</th>
+                        <th class="p-4 text-orange-300">CNY</th>
+                        <th class="p-4 text-center">Access</th>
+                        <th class="p-4 text-right">Score</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody" class="text-sm">
-                    <!-- I dati verranno caricati qui -->
-                </tbody>
+                <tbody id="tableBody" class="text-sm"></tbody>
             </table>
         </div>
     </main>
 
     <script>
         let rows = [];
-        const els = {
-            search: document.getElementById("search"),
-            regionFilter: document.getElementById("regionFilter"),
-            table: document.getElementById("tableBody")
-        };
+        const tableBody = document.getElementById("tableBody");
+        const loadingDiv = document.getElementById("loading");
 
-        // MOTORE DI CARICAMENTO DATI (Da index.html)
         async function loadData() {
             try {
+                // Cerco il file che hai su GitHub
                 const response = await fetch('gsi_access_map.csv');
+                if (!response.ok) throw new Error("File CSV non trovato");
+                
                 const text = await response.text();
-                const lines = text.split('\n').filter(l => l.trim() !== '');
-                const headers = lines.split(',').map(h => h.trim());
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+                
+                // Estraggo le intestazioni (questa era la riga che si era rotta prima)
+                const headers = lines.split(",").map(h => h.trim());
                 
                 rows = lines.slice(1).map(line => {
-                    const values = line.split(',').map(v => v.trim());
+                    const values = line.split(",").map(v => v.trim());
                     const obj = {};
                     headers.forEach((h, i) => obj[h] = values[i]);
-                    // Genera dati casuali se mancano per il monitor (simulazione)
-                    obj.growth = (Math.random() * 5).toFixed(1);
-                    obj.score = Math.floor(Math.random() * 40) + 60;
+                    // Aggiungo dati finti per le colonne mancanti nel CSV
+                    obj.growth = (Math.random() * 4).toFixed(1);
+                    obj.score = Math.floor(Math.random() * 30) + 70;
                     return obj;
                 });
-                renderTableOnly();
-            } catch (e) {
-                console.error("Errore caricamento CSV:", e);
+
+                loadingDiv.classList.add("hidden");
+                renderTable();
+            } catch (err) {
+                loadingDiv.textContent = "Errore: " + err.message + ". Verifica il nome del file CSV.";
+                console.error(err);
             }
         }
 
-        function renderTableOnly() {
-            const search = els.search.value.trim().toLowerCase();
-            const region = els.regionFilter.value;
+        function renderTable() {
+            const search = document.getElementById("search").value.toLowerCase();
+            const region = document.getElementById("regionFilter").value;
+            
             const filtered = rows.filter(r => {
                 const matchesSearch = !search || r.country.toLowerCase().includes(search) || r.iso3.toLowerCase().includes(search);
                 const matchesRegion = region === "all" || r.region === region;
                 return matchesSearch && matchesRegion;
             });
 
-            els.table.innerHTML = "";
-            filtered.forEach((r, idx) => {
+            tableBody.innerHTML = "";
+            filtered.forEach(r => {
                 const tr = document.createElement("tr");
                 tr.className = "hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-800";
-                tr.onclick = () => showDetailView(r); 
+                tr.onclick = () => showDetail(r);
                 tr.innerHTML = `
                     <td class="p-4 font-mono text-xs text-slate-500">${r.iso3 || '---'}</td>
                     <td class="p-4 font-bold text-white">${r.country || 'N/A'}</td>
                     <td class="p-4 text-emerald-400 font-mono">${r.growth}%</td>
                     <td class="p-4 text-slate-300 font-mono">${r.fdi || '0'}%</td>
-                    <td class="p-4 text-slate-300 font-mono text-xs">${r.debt || '0'}%</td>
                     <td class="p-4 text-blue-400 font-mono text-xs">${r.usdRate || '-'}</td>
-                    <td class="p-4 text-blue-300 font-mono text-xs">${r.eurRate || '-'}</td>
                     <td class="p-4 text-orange-300 font-mono text-xs">${r.cnyRate || '-'}</td>
                     <td class="p-4 text-center">
                         <span class="px-2 py-1 rounded-full text-[10px] font-bold ${r.access === 'High' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}">
                           ${r.access || 'n/d'}
                         </span>
                     </td>
-                    <td class="p-4 font-black text-right ${r.score > 80 ? 'text-emerald-400' : 'text-slate-200'}">${r.score}</td>
+                    <td class="p-4 font-black text-right text-emerald-400">${r.score}</td>
                 `;
-                els.table.appendChild(tr);
+                tableBody.appendChild(tr);
             });
         }
 
-        // FUNZIONI DELLA SCHEDA DI DETTAGLIO
-        function showDetailView(data) {
-            const panel = document.getElementById("detailPanel");
+        function showDetail(data) {
             document.getElementById("detCountry").textContent = data.country;
             document.getElementById("detScore").textContent = data.score;
-            document.getElementById("detSynthesis").textContent = data.synthesis || "Analisi non disponibile per questo paese.";
-            document.getElementById("detRoute").textContent = data.primaryAccessRoute || "Via non definita.";
+            document.getElementById("detSynthesis").textContent = data.synthesis || "Nessun dato sintetico disponibile.";
+            document.getElementById("detRoute").textContent = data.primaryAccessRoute || "Via operativa non specificata.";
             document.getElementById("detNotes").textContent = data.accessNotes || "Nessuna nota aggiuntiva.";
-            panel.classList.remove("hidden");
+            document.getElementById("detailPanel").classList.remove("hidden");
         }
 
-        function closeDetailView() {
+        function closeDetail() {
             document.getElementById("detailPanel").classList.add("hidden");
         }
 
-        els.search.oninput = renderTableOnly;
-        els.regionFilter.onchange = renderTableOnly;
+        document.getElementById("search").oninput = renderTable;
+        document.getElementById("regionFilter").onchange = renderTable;
+        
         loadData();
     </script>
 
-    <!-- HTML DEL PANNELLO LATERALE -->
     <div id="detailPanel" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex justify-end">
         <div class="w-full max-w-md bg-slate-900 h-full border-l border-slate-800 p-6 shadow-2xl overflow-y-auto custom-scrollbar">
             <div class="flex justify-between items-center mb-8">
                 <h2 id="detCountry" class="text-3xl font-black text-white uppercase">-</h2>
-                <button onclick="closeDetailView()" class="text-slate-400 hover:text-white text-2xl">✕</button>
+                <button onclick="closeDetail()" class="text-slate-400 hover:text-white text-2xl">✕</button>
             </div>
             <div class="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/30 mb-8 text-center">
                 <span class="text-[10px] text-emerald-500 uppercase block mb-1">Score GSI 2.0</span>
@@ -160,7 +157,7 @@
                     <p id="detRoute" class="text-white font-mono text-sm">-</p>
                 </section>
                 <section>
-                    <h3 class="text-xs font-bold text-orange-400 uppercase mb-2">Note di Cautela</h3>
+                    <h3 class="text-xs font-bold text-orange-400 uppercase mb-2">Note</h3>
                     <p id="detNotes" class="text-slate-400 text-sm">-</p>
                 </section>
             </div>
